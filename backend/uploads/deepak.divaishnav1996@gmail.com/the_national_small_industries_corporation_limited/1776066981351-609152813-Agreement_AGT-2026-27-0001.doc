@@ -1,0 +1,101 @@
+﻿
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <title>Agreement</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; }
+                    .agreement-header { text-align: center; margin-bottom: 25px; border-bottom: 2pt solid #129046; padding-bottom: 12px; }
+                    .agreement-title { color: #129046; font-size: 20pt; font-weight: bold; margin: 0; }
+                    .metadata { color: #000; margin: 4px 0; font-size: 10pt; }
+                    
+                    .parties-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 25px; table-layout: fixed; }
+                    .party-title { font-weight: bold; color: #000; text-transform: uppercase; font-size: 9pt; border-bottom: 1.5pt solid black; display: inline-block; padding-bottom: 2pt; margin-bottom: 5pt; }
+                    .party-detail-cell { vertical-align: top; padding-right: 10pt; font-size: 10pt; }
+                    .party-name { font-weight: bold; font-size: 11pt; margin-bottom: 2pt; }
+                    .party-info { margin: 0; padding: 0; color: #333; line-height: 1.3; }
+                    
+                    .content { line-height: 1.4; font-size: 10.5pt; color: #000; margin-top: 20px; margin-bottom: 20px; }
+                    .content p { margin: 0 0 8pt 0; padding: 0; }
+                    .content h1, .content h2, .content h3, .content h4 { margin-top: 15pt; margin-bottom: 8pt; color: #000; text-transform: uppercase; }
+                    
+                    .sig-table { width: 100%; border-collapse: collapse; margin-top: 60pt; table-layout: fixed; }
+                    .sig-cell { vertical-align: top; text-align: center; padding: 10pt 15pt; }
+                    .sig-line-box { border-top: 1.5pt solid black; padding-top: 8pt; width: 100%; }
+                    
+                    /* Content Table Styling - Universal targeting for Tiptap tables */
+                    .content table { border-collapse: collapse; width: 100%; margin: 12pt 0; border: 1.5pt solid black; }
+                    .content table th, .content table td { border: 1pt solid black; padding: 4pt 6pt; text-align: left; font-size: 10pt; line-height: 1.2; }
+                    .content table th { background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; font-size: 9pt; }
+                    .content table p { margin: 0 !important; padding: 0 !important; }
+                </style>
+            </head>
+            <body>
+                <div class="agreement-header">
+                    <h1 class="agreement-title">AGREEMENT</h1>
+                    <p class="metadata"><b>Agreement No:</b> AGT-2026-27-0001</p>
+                    <p class="metadata"><b>Date:</b> 4/10/2026</p>
+                </div>
+
+                <table class="parties-table" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <td class="party-detail-cell" width="33.3%">
+                            <div class="party-title">PARTY 1:</div>
+                            <div class="party-name">Mukesh ji</div>
+                            <div class="party-info">Shastri Nagar, Ajmer</div>
+                            <div class="party-info">Email: mukesh123@gmail.com</div>
+                            <div class="party-info">Phone: +91 9899128319</div>
+                        </td>
+                        <td class="party-detail-cell" width="33.3%">
+                            <div class="party-title">PARTY 2:</div>
+                            <div class="party-name">Dinesh ji</div>
+                            <div class="party-info">Shastri Nagar, Jaipur</div>
+                            <div class="party-info">Email: dinesh123@gmail.com</div>
+                            <div class="party-info">Phone: +91 9876893872</div>
+                        </td>
+                        
+                        <td class="party-detail-cell" width="33.4%">
+                            <div class="party-title">PARTY 3:</div>
+                            <div class="party-name">Rakesh ji</div>
+                            <div class="party-info">Shastri Nagar, Ajmer</div>
+                            <div class="party-info">Email: rakesh123@gmail.com</div>
+                            <div class="party-info">Phone: +91 9878239523</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="content">
+                    
+                            <div style="margin-bottom: 20pt; page-break-inside: avoid;">
+                                <h4 style="font-size: 13pt; font-weight: bold; border-bottom: 2pt solid black; padding-bottom: 4pt; margin-bottom: 10pt; text-transform: uppercase;">Agreement Page 1</h4>
+                                <div style="font-size: 10.5pt; text-align: justify; line-height: 1.4;"><p style="text-align: center;"><span style="font-size: 36px;"><strong>Hellooo</strong></span></p><table class="agreement-table" style="min-width: 75px;"><colgroup><col style="min-width: 25px;"><col style="min-width: 25px;"><col style="min-width: 25px;"></colgroup><tbody><tr><th colspan="1" rowspan="1"><p style="text-align: center;">Helloo 1</p></th><th colspan="1" rowspan="1"><p style="text-align: center;">Helloo 2</p></th><th colspan="1" rowspan="1"><p style="text-align: center;">Helloo 3</p></th></tr><tr><td colspan="1" rowspan="1"><p style="text-align: center;">sdfdfds</p></td><td colspan="1" rowspan="1"><p style="text-align: center;">dsfsdffsdfsf</p></td><td colspan="1" rowspan="1"><p style="text-align: center;">dsfsdfsdffs</p></td></tr><tr><td colspan="1" rowspan="1"><p style="text-align: center;">dfsdfffdsf</p></td><td colspan="1" rowspan="1"><p style="text-align: center;">dfsdfsd</p></td><td colspan="1" rowspan="1"><p style="text-align: center;">dfdsfdfdsff</p></td></tr></tbody></table></div>
+                            </div>
+                        
+                </div>
+
+                <table class="sig-table" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <td class="sig-cell" width="33.3%">
+                            <div class="sig-line-box">
+                                <div style="font-size: 10pt; font-weight: bold; text-transform: uppercase; margin-bottom: 2pt;">AUTHORIZED SIGNATORY</div>
+                                <div style="font-size: 9pt; color: #666;">(Party 1)</div>
+                            </div>
+                        </td>
+                        <td class="sig-cell" width="33.3%">
+                            <div class="sig-line-box">
+                                <div style="font-size: 10pt; font-weight: bold; text-transform: uppercase; margin-bottom: 2pt;">AUTHORIZED SIGNATORY</div>
+                                <div style="font-size: 9pt; color: #666;">(Party 2)</div>
+                            </div>
+                        </td>
+                        
+                        <td class="sig-cell" width="33.4%">
+                            <div class="sig-line-box">
+                                <div style="font-size: 10pt; font-weight: bold; text-transform: uppercase; margin-bottom: 2pt;">AUTHORIZED SIGNATORY</div>
+                                <div style="font-size: 9pt; color: #666;">(Party 3)</div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+        

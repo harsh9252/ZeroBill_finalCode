@@ -1,0 +1,100 @@
+ {
+  "name": "zero-bills-elite",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "dev:vite": "vite --host",
+    "build": "vite build --mode production",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.6",
+    "@mui/material": "^7.3.6",
+    "@react-oauth/google": "^0.13.4",
+    "@tiptap/core": "^2.27.2",
+    "@tiptap/extension-bullet-list": "^2.1.0",
+    "@tiptap/extension-color": "^2.27.2",
+    "@tiptap/extension-highlight": "^2.27.2",
+    "@tiptap/extension-link": "^2.1.0",
+    "@tiptap/extension-list-item": "^2.1.0",
+    "@tiptap/extension-ordered-list": "^2.1.0",
+    "@tiptap/extension-table": "^2.27.2",
+    "@tiptap/extension-table-cell": "^2.27.2",
+    "@tiptap/extension-table-header": "^2.27.2",
+    "@tiptap/extension-table-row": "^2.27.2",
+    "@tiptap/extension-text-align": "^2.27.2",
+    "@tiptap/extension-text-style": "^2.1.0",
+    "@tiptap/extension-underline": "^2.1.0",
+    "@tiptap/react": "^2.1.0",
+    "@tiptap/starter-kit": "^2.1.0",
+    "axios": "^1.13.5",
+    "bootstrap": "^5.3.8",
+    "docx": "^9.6.1",
+    "dompurify": "^3.4.1",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
+    "framer-motion": "^10.18.0",
+    "html2canvas": "^1.4.1",
+    "i18next": "^25.6.0",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.7",
+    "lucide-react": "^0.552.0",
+    "mammoth": "^1.12.0",
+    "pdfjs-dist": "^4.10.38",
+    "qrcode.react": "^3.2.0",
+    "react": "^18.2.0",
+    "react-cropper": "^2.3.3",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^16.2.4",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.9.5",
+    "react-to-pdf": "^2.0.3",
+    "react-to-print": "^3.2.0",
+    "sweetalert2": "^11.26.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^14.5.1",
+    "@vitejs/plugin-react": "^4.0.0",
+    "@vitest/coverage-v8": "^1.0.4",
+    "@vitest/ui": "^1.0.4",
+    "autoprefixer": "^10.4.16",
+    "fs-extra": "^11.3.3",
+    "jsdom": "^23.0.1",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.3",
+    "vite": "^4.5.0",
+    "vitest": "^1.0.4"
+  },
+  "vitest": {
+    "environment": "jsdom",
+    "setupFiles": [
+      "./src/test/setup.js"
+    ],
+    "coverage": {
+      "provider": "v8",
+      "reporter": [
+        "text",
+        "json",
+        "html"
+      ],
+      "exclude": [
+        "node_modules/",
+        "src/test/",
+        "**/*.d.ts",
+        "**/*.config.{js,ts}",
+        "dist/"
+      ]
+    }
+  }
+}

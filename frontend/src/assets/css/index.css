@@ -1,0 +1,331 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   1. BASE STYLES & GLOBALS
+   ========================================================================== */
+
+body {
+  font-family: "DM Sans", "Inter", "Segoe UI", Arial, sans-serif;
+  top: 0 !important;
+}
+
+.min-h-screen {
+  min-height: 89vh;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ==========================================================================
+   2. LAYOUT COMPONENTS
+   ========================================================================== */
+
+.header-fixed {
+  top: 0;
+  z-index: 9999;
+  background: white;
+  padding: 10px;
+}
+
+.main-background {
+  background-color: #f9fafb;
+}
+
+.sidebarbackground {
+  background-color: white;
+}
+
+.custombackground {
+  background-color: white;
+}
+
+.headerborder {
+  border-color: #e5e7eb !important;
+}
+
+/* ==========================================================================
+   3. UI COMPONENTS & OVERRIDES
+   ========================================================================== */
+
+/* --- Action Buttons (Table Top Bar) --- */
+.action-button-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  padding-bottom: 1rem;
+}
+
+.action-button-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.action-button-box button {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  height: 2rem;
+  background-color: #ffffff;
+}
+
+/* --- Form Elements --- */
+.form-control,
+.form-select {
+  height: calc(1.6em + 1rem);
+}
+
+.section-title {
+  color: #444;
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.address-box {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.form-label.small {
+  font-size: 0.85rem;
+  color: #6b6b6b;
+}
+
+.form-label.small+.form-control,
+.form-label.small+.form-select {
+  margin-top: 0.25rem;
+}
+
+.btn-get {
+  background: #e9dff6;
+  border: none;
+  color: #5b3fa1;
+  min-width: 120px;
+}
+
+.btnSize {
+  height: 40px !important;
+  border-radius: 0px 10px 10px 0px !important;
+  border: 2px solid #d1d5db;
+  background-color: #d1d5db;
+}
+
+.normalFormOption {
+  height: 40px !important;
+  border-radius: 8px !important;
+  border: 2px solid #d1d5db;
+}
+
+.invertoryborder {
+  height: 40px !important;
+  border-radius: 10px !important;
+  border: 1px solid #d1d5db;
+}
+
+.invertoryPricingborder {
+  height: 40px !important;
+  border-radius: 0px 10px 10px 0px !important;
+  border: 1px solid #d1d5db;
+}
+
+/* --- Cards & Containers --- */
+.card-body {
+  padding: 1.25rem 1.5rem;
+}
+
+.bank-box {
+  background: #fff;
+  border: 1px dashed #e6e6e6;
+}
+
+/* --- Tables --- */
+thead {
+  background-color: #f9fafb;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+}
+
+thead th {
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+}
+
+tbody td {
+  font-size: 16px;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.invoicePdf tbody td {
+  border-bottom: none !important;
+}
+
+/* --- Dropdowns & Selection --- */
+.dropdown-item-base {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: #ffffff;
+  color: #374151;
+  transition: all 0.2s;
+  border: none;
+  outline: none;
+}
+
+.dropdown-item {
+  background-color: #ffffff;
+  color: #374151;
+}
+
+.dropdown-item:hover {
+  background: linear-gradient(to right, #dcfce7, #bbf7d0);
+  color: #000000;
+  cursor: pointer;
+}
+
+.selected-item {
+  background: linear-gradient(to right, #16a34a, #22c55e);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  color: #ffffff !important;
+}
+
+.selected-item:hover {
+  background: linear-gradient(to right, #15803d, #16a34a) !important;
+  color: #ffffff !important;
+}
+
+.selected-item span {
+  color: #ffffff !important;
+}
+
+select option:checked {
+  background-color: #fde047 !important;
+  color: #000000 !important;
+}
+
+/* ==========================================================================
+   4. UTILITIES & ANIMATIONS
+   ========================================================================== */
+
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.shadow-md {
+  padding: 0px 20px;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* On group hover, change gradient color and add side padding */
+.group:hover .group-hover\:to-yellow-300 {
+  --tw-gradient-to: #fde047 var(--tw-gradient-to-position);
+  padding: 0px 10px;
+}
+
+/* Keyframes & Animations */
+@keyframes pulse-bounce {
+
+  0%,
+  100% {
+    transform: scale(1);
+    background: linear-gradient(to bottom right, #ef4444, #b91c1c) !important;
+    color: white !important;
+  }
+
+  50% {
+    transform: scale(1.1);
+    background: linear-gradient(to bottom right, #581c87, #4c1d95) !important;
+    color: white !important;
+  }
+}
+
+.animate-pulse-bounce {
+  animation: pulse-bounce 1.5s infinite ease-in-out !important;
+}
+
+/* ==========================================================================
+   5. VENDOR & EXTERNAL OVERRIDES
+   ========================================================================== */
+
+/* --- Google Translate Overrides --- */
+.goog-te-banner-frame.skiptranslate,
+.VIpgJd-suEOdc {
+  display: none !important;
+}
+
+.VIpgJd-ZVi9od-ORHb-OEVmcd {
+  left: 0;
+  top: 0;
+  height: 39px;
+  width: 100%;
+  z-index: 10000001;
+  position: fixed;
+  border: none;
+  border-bottom: 1px solid #6B90DA;
+  margin: 0;
+  box-shadow: 0 0 8px 1px #999;
+  display: none;
+}
+
+/* --- SweetAlert2 Overrides --- */
+.swal2-container {
+  z-index: 10000 !important;
+}
+
+/* ==========================================================================
+   6. MEDIA QUERIES (At Bottom to avoid nesting warnings)
+   ========================================================================== */
+
+@media (max-width: 767px) {
+
+  .form-control,
+  .form-select {
+    height: calc(1.4em + 0.8rem);
+  }
+}
+
+@media (max-width: 640px) {
+  .hidemobile {
+    display: none !important;
+  }
+
+  .custombackground {
+    margin-bottom: 80px;
+  }
+}
+
+/* ==========================================================================
+   7. PDF CAPTURE FIXES
+   ========================================================================== */
+
+.pdf-capture .overflow-x-auto {
+  overflow: visible !important;
+  width: auto !important;
+}
+
+.pdf-capture table {
+  width: 100% !important;
+  table-layout: auto !important;
+}
+
+.pdf-capture .whitespace-nowrap {
+  white-space: normal !important;
+}

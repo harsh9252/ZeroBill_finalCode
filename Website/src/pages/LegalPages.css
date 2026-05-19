@@ -1,0 +1,132 @@
+/* LegalPages.css - Responsive styles for Policy/Terms/Refund pages */
+
+.legal-page-wrapper {
+    background-color: #f4f7f6;
+    min-height: 100vh;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.legal-content-box {
+    background-color: #ffffff;
+    max-width: 1200px;
+    width: 100%;
+    padding: 60px 80px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border-radius: 12px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.7;
+    color: #334155;
+    position: relative;
+}
+
+.legal-title {
+    text-align: center;
+    font-size: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 50px;
+    font-weight: 800;
+    color: #1e293b;
+    border-bottom: 3px solid #f1f5f9;
+    padding-bottom: 25px;
+}
+
+.legal-body {
+    font-size: 1.05rem;
+    color: #475569;
+}
+
+.legal-body p {
+    margin-bottom: 1.25rem;
+    text-align: justify;
+}
+
+.legal-body h3, .legal-body h4 {
+    font-size: 1.25rem;
+    margin-top: 35px;
+    margin-bottom: 15px;
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.legal-body ul {
+    padding-left: 20px;
+    margin-bottom: 1.5rem;
+}
+
+.legal-info-card {
+    padding: 24px;
+    background-color: #f8fafc;
+    border-radius: 10px;
+    border-left: 5px solid #129046;
+    margin: 30px 0;
+    font-size: 0.95rem;
+    line-height: 1.8;
+}
+
+.legal-link {
+    color: #129046;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.legal-link:hover {
+    color: #0d6b33;
+    text-decoration: underline;
+}
+
+/* --- Responsive Adjustments --- */
+
+@media (max-width: 768px) {
+    .legal-page-wrapper {
+        padding: 15px 10px; /* Kept some padding for background visibility */
+    }
+
+    .legal-content-box {
+        padding: 25px 20px;
+        border-radius: 8px; /* Re-enabled rounding */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); /* Re-enabled shadow */
+    }
+
+    .legal-title {
+        font-size: 1.4rem;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+    }
+
+    .legal-body {
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    .legal-body p {
+        text-align: left; /* Better for small screens */
+    }
+
+    .legal-body h3, .legal-body h4 {
+        font-size: 1.15rem;
+        margin-top: 25px;
+    }
+
+    .legal-info-card {
+        padding: 16px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .legal-content-box {
+        padding: 25px 15px;
+    }
+
+    .legal-title {
+        font-size: 1.25rem;
+    }
+
+    .legal-body {
+        font-size: 0.9rem;
+    }
+}

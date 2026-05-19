@@ -1,0 +1,205 @@
+/* Lucas Bebber Gooey Menu - Yellow Theme */
+
+.gooey-menu {
+  filter: url('#shadowed-goo');
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 380px;
+  height: 250px;
+  box-sizing: border-box;
+  font-size: 20px;
+  text-align: center;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.gooey-menu * {
+  pointer-events: auto;
+}
+
+/* Ball base style */
+.menu-item {
+  background: #fbbf24;
+  border-radius: 100%;
+  width: 76px;
+  height: 76px;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  margin-left: -38px;
+  color: white;
+  text-align: center;
+  line-height: 76px;
+  /* Hidden by default so no extra circle is visible before clicking Plus */
+  transform: translate3d(0, 0, 0) scale(0);
+  opacity: 0;
+  transition: transform 220ms ease-out, opacity 180ms ease-out;
+  overflow: hidden;
+}
+
+.menu-open-button {
+  background: #fbbf24;
+  border-radius: 100%;
+  width: 85px;
+  height: 85px;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  margin-left: -42.5px;
+  color: white;
+  text-align: center;
+  line-height: 85px;
+  transform: translate3d(0, 0, 0);
+  transition: transform ease-out 200ms;
+  overflow: hidden;
+}
+
+.menu-open {
+  display: none;
+}
+
+/* Menu items */
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  flex-direction: column;
+  line-height: 1;
+  padding: 10px;
+}
+
+.menu-item-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  max-width: 65px;
+  overflow: hidden;
+}
+
+.menu-icon {
+  width: 26px;
+  height: 26px;
+  stroke-width: 2;
+}
+
+/* Plus icon inside toggle - centered */
+.plus-icon {
+  width: 32px;
+  height: 32px;
+  color: #ffffff;
+  transition: transform 200ms;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.menu-open:checked + .menu-open-button .plus-icon {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+/* Spacer inside bottom bar to keep the Plus centered under the gooey toggle */
+.gooey-spacer {
+  width: 86px;
+  height: 86px;
+}
+
+.menu-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  text-align: center;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.1;
+  color: #ffffff;
+}
+
+.menu-item:hover {
+  background: white;
+  color: #fbbf24;
+}
+
+/* Hamburger styles removed - using Plus icon */
+
+/* Hide the menu open button - Plus is now in bottom bar */
+.menu-open-button {
+  display: none;
+}
+
+/* Menu item transitions - staggered timing */
+.menu-item:nth-child(3) {
+  transition-duration: 70ms;
+}
+
+.menu-item:nth-child(4) {
+  transition-duration: 130ms;
+}
+
+.menu-item:nth-child(5) {
+  transition-duration: 190ms;
+}
+
+.menu-item:nth-child(6) {
+  transition-duration: 250ms;
+}
+
+.menu-item:nth-child(7) {
+  transition-duration: 310ms;
+}
+
+/* Menu item positions when open - Lucas Bebber angles; hide until open */
+/* DOM: input (1) + 5 .menu-item (2..6) */
+.menu-open:checked ~ .menu-item {
+  transition-timing-function: cubic-bezier(0.935, 0, 0.34, 1.33);
+  opacity: 1;
+}
+/* Even semi-circle (desktop) with consistent radius */
+/* Angles: 0°, 45°, 90°, 135°, 180° */
+.menu-open:checked ~ .menu-item:nth-child(2) { transition-duration: 160ms; transform: translate3d(120px, 0px, 0) scale(1); }
+.menu-open:checked ~ .menu-item:nth-child(3) { transition-duration: 240ms; transform: translate3d(85px, -85px, 0) scale(1); }
+.menu-open:checked ~ .menu-item:nth-child(4) { transition-duration: 320ms; transform: translate3d(0px, -120px, 0) scale(1); }
+.menu-open:checked ~ .menu-item:nth-child(5) { transition-duration: 400ms; transform: translate3d(-85px, -85px, 0) scale(1); }
+.menu-open:checked ~ .menu-item:nth-child(6) { transition-duration: 480ms; transform: translate3d(-120px, 0px, 0) scale(1); }
+
+/* Responsive - smaller screens */
+@media (max-width: 640px) {
+  .gooey-menu {
+    width: 320px;
+    bottom: 65px;
+  }
+
+  .menu-item,
+  .menu-open-button {
+    width: 70px;
+    height: 70px;
+    margin-left: -35px;
+    line-height: 70px;
+  }
+
+  .menu-item-content { max-width: 60px; }
+  .menu-icon { width: 22px; height: 22px; }
+
+  .menu-label { font-size: 9.5px; }
+  
+  .plus-icon { width: 28px; height: 28px; }
+
+  /* Even semi-circle (mobile) scaled radius */
+  .menu-open:checked ~ .menu-item:nth-child(2) { transform: translate3d(96px, 0px, 0) scale(1); }
+  .menu-open:checked ~ .menu-item:nth-child(3) { transform: translate3d(68px, -68px, 0) scale(1); }
+  .menu-open:checked ~ .menu-item:nth-child(4) { transform: translate3d(0px, -96px, 0) scale(1); }
+  .menu-open:checked ~ .menu-item:nth-child(5) { transform: translate3d(-68px, -68px, 0) scale(1); }
+  .menu-open:checked ~ .menu-item:nth-child(6) { transform: translate3d(-96px, 0px, 0) scale(1); }
+}
+
+/* Hide on desktop */
+@media (min-width: 1024px) {
+  .gooey-menu {
+    display: none;
+  }
+}

@@ -1,0 +1,161 @@
+/* Action Buttons */
+.action-button {
+  position: relative;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  transition: all 0.3s ease;
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* Edit Button - Green */
+.action-button.edit {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+.action-button.edit:hover {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.5);
+}
+
+/* Delete Button - Red */
+.action-button.delete {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.action-button.delete:hover {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+}
+
+/* View Button - Blue */
+.action-button.view {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.action-button.view:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+}
+
+/* More Button - Gray */
+.action-button.more {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
+}
+
+.action-button.more:hover {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.5);
+}
+
+/* Approve Button - Green */
+.action-button.approve {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+.action-button.approve:hover {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.5);
+}
+
+/* Reject Button - Red */
+.action-button.reject {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.action-button.reject:hover {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+}
+
+/* Icon styling */
+.action-button svg {
+  position: relative;
+  z-index: 2;
+  width: 13px;
+  height: 13px;
+}
+
+/* Share Button - Blue (Specifically for ReusableTable trigger) */
+.action-button.share {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.action-button.share:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+}
+
+/* Invoice Button - Blue (for Book Invoice icon) */
+.action-button.invoice {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.action-button.invoice:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+}
+
+/* Toggle Button - Active (Deactivate) - Orange-ish */
+.action-button.toggle-active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+.action-button.toggle-active:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.5);
+}
+
+/* Toggle Button - Inactive (Activate) - Green */
+.action-button.toggle-inactive {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+.action-button.toggle-inactive:hover {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.5);
+}
+
+/* Active state */
+.action-button:active {
+  transform: scale(0.95);
+}
+
+/* Disabled state */
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Focus state for accessibility */
+.action-button:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}

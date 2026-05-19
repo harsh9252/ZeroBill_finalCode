@@ -1,0 +1,372 @@
+/* =============================================
+   BOOK DEMO MODAL - Matching Software Form Style
+   ============================================= */
+
+/* Overlay */
+.demo-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  backdrop-filter: blur(2px);
+}
+
+/* Modal Card */
+.demo-modal-content {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 680px;
+  max-height: 92vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  animation: demoSlideUp 0.3s ease-out;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.demo-modal-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.demo-modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.demo-modal-content::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 10px;
+}
+
+@keyframes demoSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Header (Green Gradient Banner) ── */
+.demo-modal-header {
+  background: linear-gradient(135deg, #129046 0%, #3fa85f 60%, #9ccc53 100%);
+  padding: 22px 28px 22px 28px;
+  border-radius: 16px 16px 0 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.demo-modal-header-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.demo-modal-header-text h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 3px 0;
+  line-height: 1.2;
+}
+
+.demo-modal-header-text p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+/* ── Close Button (inside header) ── */
+.demo-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  transition: background 0.2s;
+  z-index: 10;
+}
+
+.demo-modal-close:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Form Body ── */
+.demo-form {
+  padding: 24px 28px 28px;
+}
+
+/* ── Section Headings (green dot style like software) ── */
+.demo-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px 0;
+}
+
+.demo-section-title::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #129046;
+  flex-shrink: 0;
+}
+
+/* ── Section blocks ── */
+.demo-section {
+  margin-bottom: 20px;
+}
+
+.demo-section+.demo-section {
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* ── Form Row (2-column grid) ── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Form Group ── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  margin-bottom: 16px;
+}
+
+/* ── Labels ── */
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+
+/* ── Inputs, Selects, Textarea ── */
+.form-group input,
+.form-group select,
+.form-group textarea {
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #111827;
+  background: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  height: auto;
+  padding: 12px 14px;
+  resize: vertical;
+  min-height: 88px;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+/* Focus: green glow like software */
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #129046;
+  box-shadow: 0 0 0 3px rgba(18, 144, 70, 0.12);
+}
+
+/* ── Custom Select Wrapper (chevron icon) ── */
+.demo-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.demo-select-wrapper select {
+  padding-right: 38px;
+  cursor: pointer;
+}
+
+.demo-select-wrapper .select-chevron {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Date input ── */
+.form-group input[type="date"] {
+  cursor: pointer;
+}
+
+.form-group input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+/* ── Submit Button ── */
+.demo-submit-btn {
+  width: 100%;
+  height: 48px;
+  background: linear-gradient(135deg, #129046 0%, #3fa85f 50%, #9ccc53 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+  box-shadow: 0 4px 14px rgba(18, 144, 70, 0.25);
+  letter-spacing: 0.3px;
+}
+
+.demo-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(18, 144, 70, 0.38);
+  background: linear-gradient(135deg, #0d6b33 0%, #129046 50%, #7ab83f 100%);
+}
+
+.demo-submit-btn:active:not(:disabled) {
+  transform: translateY(0px);
+  box-shadow: 0 3px 10px rgba(18, 144, 70, 0.2);
+}
+
+.demo-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Success State ── */
+.demo-success {
+  padding: 56px 30px;
+  text-align: center;
+}
+
+.success-icon {
+  width: 76px;
+  height: 76px;
+  background: linear-gradient(135deg, #129046 0%, #3fa85f 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin: 0 auto 18px;
+  animation: demoScaleIn 0.45s ease-out;
+  box-shadow: 0 8px 24px rgba(18, 144, 70, 0.3);
+}
+
+@keyframes demoScaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.demo-success h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.demo-success p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .demo-modal-content {
+    border-radius: 14px;
+    max-height: 95vh;
+  }
+
+  .demo-modal-header {
+    padding: 18px 20px;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .demo-modal-header-text h2 {
+    font-size: 17px;
+  }
+
+  .demo-form {
+    padding: 18px 18px 24px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px;
+  }
+}

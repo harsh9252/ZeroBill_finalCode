@@ -1,0 +1,119 @@
+/* Centered Page Layout */
+.editor-page-container {
+  background-color: #f3f4f6;
+  padding: 40px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.ProseMirror {
+  outline: none;
+  background-color: white;
+  width: 100%;
+  max-width: 1150px; /* Expanded for high-resolution editing */
+  min-height: 1056px; /* Standard A4 height-ish */
+  padding: 80px 100px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05), 0 2px 5px rgba(0,0,0,0.05);
+  margin: 0 auto;
+  color: #1a202c;
+  line-height: 1.6;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+/* Typography */
+.ProseMirror h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 2rem; color: #000; letter-spacing: -0.02em; }
+.ProseMirror h2 { font-size: 2rem; font-weight: 700; margin-bottom: 1.5rem; color: #111; letter-spacing: -0.01em; }
+.ProseMirror h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; color: #222; }
+.ProseMirror p { margin-bottom: 1.25rem; }
+
+/* Lists */
+.ProseMirror ul, 
+.ProseMirror ol {
+  padding-left: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.ProseMirror ul { list-style-type: disc; }
+.ProseMirror ol { list-style-type: decimal; }
+
+.ProseMirror li {
+  margin-bottom: 0.5rem;
+}
+
+/* Tables - STRICT BLACK BORDERS */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 2rem 0;
+  border: 1px solid #000 !important;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  min-width: 1em;
+  border: 1px solid #000 !important;
+  padding: 4px 6px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  background-color: transparent !important;
+  color: #000 !important;
+}
+
+.ProseMirror th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #f8f9fa !important;
+}
+
+/* Remove margins in table cells */
+.ProseMirror td p,
+.ProseMirror th p {
+  margin: 0 !important;
+}
+
+/* Table Selection & Resizing */
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px; top: 0; bottom: -2px;
+  width: 4px;
+  background-color: #000;
+  pointer-events: none;
+}
+
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 2rem 0;
+}
+
+/* Links */
+.ProseMirror a {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+/* Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Selection */
+::selection {
+  background-color: #c6e2ff;
+}

@@ -1,0 +1,70 @@
+.dm-grid-container {
+    max-width: 100%; 
+    margin: 0 auto;
+}
+
+.dm-grid {
+    gap: 4px !important;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.dm-day-cell {
+    position: relative;
+    background: #ffffff;
+    cursor: pointer;
+    padding: 3px;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dm-day-cell.empty {
+    background: transparent;
+    border: none;
+    cursor: default;
+}
+
+.dm-day-cell span {
+    line-height: 1.2;
+    z-index: 2;
+}
+
+.dm-day-cell:hover:not(.empty) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.dm-day-cell.dm-day-off {
+    cursor: not-allowed;
+    pointer-events: none;
+    background: #fee2e2 !important;
+    border-color: #fca5a5 !important;
+}
+
+.dm-slots-list {
+    max-height: 400px; /* Reduced to better match calendar natural height */
+    overflow-y: auto;
+    padding-right: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Reduced gap */
+}
+
+.dm-slots-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dm-slots-list::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.dm-slots-list::-webkit-scrollbar-track {
+    background: #f8fafc;
+}

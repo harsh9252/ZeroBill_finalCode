@@ -1,0 +1,205 @@
+{
+  "logo": "/logo-2.png",
+  "companyName": "InvoiceBillBook",
+  "tagline": "",
+  "items": [
+    {
+      "key": "dashboard",
+      "label": "Dashboard",
+      "icon": "LayoutDashboard",
+      "path": "dashboard"
+    },
+    {
+      "key": "salesLead",
+      "label": "Sales Lead",
+      "icon": "TrendingUp",
+      "path": "sales-leads"
+    },
+    {
+      "key": "parties",
+      "label": "Parties",
+      "icon": "Users",
+      "path": "parties"
+    },
+    {
+      "key": "inventory",
+      "label": "Inventory/Service",
+      "icon": "Boxes",
+      "path": "inventory"
+    },
+    {
+      "key": "quotation",
+      "label": "Quotation",
+      "icon": "Quote",
+      "path": "quotation",
+      "children": [
+        {
+          "key": "custom-quotation",
+          "label": "Custom Proposal",
+          "icon": "FilePlus",
+          "path": "custom-quotation"
+        }
+      ]
+    },
+    {
+      "key": "proformaInvoice",
+      "label": "Proforma Invoice",
+      "icon": "FileSignature",
+      "path": "proformaInvoice"
+    },
+    {
+      "key": "invoice",
+      "label": "Tax invoice",
+      "icon": "FileText",
+      "path": "invoice"
+    },
+    {
+      "key": "payment",
+      "label": "Payment In",
+      "icon": "IndianRupee",
+      "path": "payment"
+    },
+    {
+      "key": "salesReturn",
+      "label": "Sales Return",
+      "icon": "Undo2",
+      "path": "salesReturn"
+    },
+    {
+      "key": "creditNote",
+      "label": "Credit Note",
+      "icon": "FileBarChart2",
+      "path": "creditNote"
+    },
+    {
+      "key": "deliveryChallan",
+      "label": "Delivery Challan",
+      "icon": "Truck",
+      "path": "deliveryChallan"
+    },
+    {
+      "key": "purchaseOrder",
+      "label": "Purchase Order",
+      "icon": "FilePlus",
+      "path": "purchaseOrder"
+    },
+    {
+      "key": "bookPurchaseOrder",
+      "label": "Book Purchase order",
+      "icon": "ClipboardList",
+      "path": "bookPurchaseOrder"
+    },
+    {
+      "key": "bookInvoice",
+      "label": "Book Invoice",
+      "icon": "FileText",
+      "path": "bookInvoice"
+    },
+    {
+      "key": "paymentOut",
+      "label": "Payment Out",
+      "icon": "CloudUpload",
+      "path": "paymentOut"
+    },
+    {
+      "key": "debitNote",
+      "label": "Debit Note",
+      "icon": "FileMinus",
+      "path": "debitNote"
+    },
+    {
+      "key": "Agreement",
+      "label": "Agreement",
+      "icon": "FileSignature",
+      "path": "Agreement"
+    },
+    {
+      "key": "purchaseRequisition",
+      "label": "Purchase Requisition",
+      "icon": "ClipboardList",
+      "path": "purchaseRequisition"
+    },
+    {
+      "key": "MRN",
+      "label": "MRN",
+      "icon": "ClipboardList",
+      "path": "MRN"
+    },
+    {
+      "key": "GRN",
+      "label": "GRN",
+      "icon": "ClipboardList",
+      "path": "GRN"
+    },
+    {
+      "key": "report",
+      "label": "Report",
+      "icon": "BarChart",
+      "path": "report"
+    },
+    {
+      "key": "eInvoice",
+      "label": "E-Invoice & EWB",
+      "icon": "FileSignature",
+      "path": "eInvoice"
+    },
+    {
+      "key": "projectExpense",
+      "label": "Project Expense",
+      "icon": "Wallet",
+      "path": "projectExpense"
+    },
+    {
+      "key": "zKhataBook",
+      "label": "Z Khata Book",
+      "icon": "ClipboardList",
+      "path": "zKhataBook"
+    },
+    {
+      "key": "ledger",
+      "label": "Ledger",
+      "icon": "FileBarChart2",
+      "path": "ledger"
+    },
+    {
+      "key": "documents",
+      "label": "Documents",
+      "icon": "CloudUpload",
+      "path": "documents"
+    }
+  ],
+  "setting": [
+    {
+      "key": "account",
+      "label": "Account",
+      "icon": "Settings",
+      "path": "account"
+    },
+    {
+      "key": "business",
+      "label": "Manage Business",
+      "icon": "Building",
+      "path": "business"
+    },
+    {
+      "key": "manageUser",
+      "label": "Manage User",
+      "icon": "Users",
+      "path": "manageUser"
+    },
+    {
+      "key": "voucherSettings",
+      "label": "Voucher Setting",
+      "icon": "Settings2",
+      "path": "voucher-settings"
+    }
+  ],
+  "footerItems": [
+    {
+      "key": "logout",
+      "label": "Logout",
+      "icon": "LogOut",
+      "path": "/login"
+    }
+  ]
+}

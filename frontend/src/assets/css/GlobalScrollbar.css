@@ -1,0 +1,83 @@
+/* ============================================================
+   GLOBAL CUSTOM SCROLLBAR - Simple Gray with Shadow
+   ============================================================ */
+
+/* Scrollbar width */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+/* Scrollbar track - transparent */
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+/* Scrollbar thumb - gray with shadow */
+::-webkit-scrollbar-thumb {
+  background: #999;
+  border-radius: 50px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+/* Scrollbar thumb hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #666;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Hide/Transparent scrollbar buttons - completely remove */
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  visibility: hidden !important;
+}
+
+::-webkit-scrollbar-button:start {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+::-webkit-scrollbar-button:end {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Additional button hiding for all states */
+::-webkit-scrollbar-button:vertical:start:increment,
+::-webkit-scrollbar-button:vertical:end:decrement {
+  display: none !important;
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #999 transparent;
+}
+
+html, body {
+  scrollbar-width: thin;
+  scrollbar-color: #999 transparent;
+}
+
+/* Navbar z-index higher than scrollbar */
+.header-fixed,
+.navbar,
+.top-navbar,
+header {
+  position: relative;
+  z-index: 9999;
+}
+
+/* Sidebar z-index */
+.sidebar,
+.sidebarbackground {
+  position: relative;
+  z-index: 50;
+}

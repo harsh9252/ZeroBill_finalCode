@@ -1,0 +1,90 @@
+/* Toggle Switch Styles */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 65px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #d1d5db;
+  transition: background 0.3s ease;
+  border-radius: 32px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* Text inside toggle */
+.toggle-text {
+  position: absolute;
+  font-size: 10px;
+  font-weight: 800;
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+}
+
+/* ON text - left side, white, visible when ON */
+.toggle-on-text {
+  left: 6px;
+  color: white;
+}
+
+/* OFF text - right side, gray, visible when OFF */
+.toggle-off-text {
+  right: 6px;
+  color: #6b7280;
+}
+
+/* Knob */
+.toggle-knob {
+  position: absolute;
+  height: 28px;
+  width: 28px;
+  left: 2px;
+  background-color: white;
+  transition: left 0.3s ease;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+/* When checked - ON state */
+input:checked + .toggle-slider {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+input:checked + .toggle-slider .toggle-knob {
+  left: 35px;
+}
+
+/* Hover effect */
+.toggle-switch:hover input:not(:disabled) + .toggle-slider {
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.3);
+}
+
+/* Disabled state */
+input:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Remove focus outline */
+input:focus + .toggle-slider {
+  outline: none;
+}

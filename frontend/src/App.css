@@ -1,0 +1,191 @@
+/* App.css - Add custom styles here if needed */
+
+/* ProseMirror Editor Base Styles */
+.ProseMirror {
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Modal scroll lock - prevents background scrolling when modal is open */
+body.modal-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure modals are scrollable internally */
+.modal-content {
+  overflow-y: auto;
+  max-height: 90vh;
+}
+
+/* Smooth modal animations */
+.modal-backdrop {
+  backdrop-filter: blur(2px);
+  transition: backdrop-filter 0.3s ease;
+}
+
+/* Prevent scroll on modal backdrop */
+.modal-backdrop,
+[class*="fixed inset-0"] {
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+/* TipTap Table Styles */
+.ProseMirror .editor-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+  border: 2px solid #000;
+}
+
+.ProseMirror .editor-table td,
+.ProseMirror .editor-table th {
+  min-width: 1em;
+  border: 1px solid #000 !important;
+  padding: 8px 12px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  background-color: #fff !important;
+}
+
+.ProseMirror .editor-table th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #f8f9fa !important;
+  border: 1px solid #000 !important;
+}
+
+.ProseMirror .editor-table .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(18, 144, 70, 0.1);
+  pointer-events: none;
+}
+
+.ProseMirror .editor-table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #129046;
+  pointer-events: none;
+}
+
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
+/* Heading Styles */
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 1.5rem 0 1rem 0;
+  line-height: 1.2;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 1.25rem 0 0.75rem 0;
+  line-height: 1.3;
+}
+
+.ProseMirror h3 {
+  font-size: 1.25em;
+  font-weight: bold;
+  margin: 1rem 0 0.5rem 0;
+  line-height: 1.4;
+}
+
+/* List item alignment fix */
+.ProseMirror ul.bullet-list, 
+.ProseMirror ol.ordered-list {
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.ProseMirror li {
+  margin-bottom: 0.5rem;
+}
+
+/* List style types */
+.ProseMirror ol.ordered-list {
+  list-style-type: decimal;
+}
+
+.ProseMirror ol.ordered-list[style*="lower-alpha"] {
+  list-style-type: lower-alpha;
+}
+
+.ProseMirror ol.ordered-list[style*="upper-alpha"] {
+  list-style-type: upper-alpha;
+}
+
+.ProseMirror ol.ordered-list[style*="lower-roman"] {
+  list-style-type: lower-roman;
+}
+
+.ProseMirror ol.ordered-list[style*="upper-roman"] {
+  list-style-type: upper-roman;
+}
+
+
+/* Override Tiptap default highlight colors */
+.ProseMirror mark {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+/* Remove any default prose highlighting */
+.ProseMirror .is-editor-empty:first-child::before {
+  content: none !important;
+}
+
+/* Ensure table cells don't have background colors */
+.ProseMirror table td,
+.ProseMirror table th {
+  background-color: #fff !important;
+}
+
+/* Override any prose class styling */
+.ProseMirror.prose {
+  color: inherit;
+}
+
+.ProseMirror.prose p {
+  margin: 0.75em 0;
+}
+
+.ProseMirror.prose strong {
+  font-weight: 700;
+}
+
+.ProseMirror.prose em {
+  font-style: italic;
+}
+
+/* Ensure editor content area is full width */
+.ProseMirror {
+  width: 100% !important;
+  max-width: none !important;
+}

@@ -1,0 +1,101 @@
+/* Remove number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Custom Price Input */
+.price-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.price-input-wrapper input {
+  width: 100%;
+  padding: 8px 12px 8px 28px;
+  font-size: 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  color: #1f2937;
+  background-color: #ffffff;
+}
+
+.price-input-wrapper input:hover {
+  border-color: #d1d5db;
+}
+
+.price-input-wrapper input:focus {
+  outline: none;
+  border-color: #1fbe5a;
+  box-shadow: 0 0 0 3px rgba(31, 190, 90, 0.1);
+}
+
+.price-input-wrapper input::placeholder {
+  color: #9ca3af;
+}
+
+.price-currency {
+  position: absolute;
+  left: 12px;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+/* Custom Select Dropdown */
+.custom-select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.custom-select-wrapper select {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #1f2937;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: all 0.2s ease;
+  height: 36px;
+}
+
+.custom-select-wrapper select:hover {
+  border-color: #d1d5db;
+}
+
+.custom-select-wrapper select:focus {
+  outline: none;
+  border-color: #1fbe5a;
+  box-shadow: 0 0 0 3px rgba(31, 190, 90, 0.1);
+}
+
+.custom-select-wrapper select option {
+  padding: 8px 12px;
+  background-color: #ffffff;
+  color: #1f2937;
+}
+
+.custom-select-wrapper select option:hover {
+  background-color: #e0f2e9;
+  color: #1f2937;
+}
+
+/* Smooth transitions */
+.custom-select-wrapper select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

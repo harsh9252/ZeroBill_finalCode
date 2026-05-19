@@ -1,0 +1,22 @@
+/* Google Translate Cleanup - Target specific elements injected by Google */
+#goog-gt-tt,
+.goog-te-banner-frame,
+.goog-te-menu-value,
+.goog-tooltip,
+.goog-tooltip:hover,
+.goog-text-highlight {
+    display: none !important;
+}
+
+.goog-te-balloon-frame {
+    display: none !important;
+}
+
+body {
+    top: 0 !important;
+}
+
+font {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}

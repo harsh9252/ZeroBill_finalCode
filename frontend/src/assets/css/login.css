@@ -1,0 +1,283 @@
+:root {
+  --primary-color: #FFC107;
+  --bg-yellow: #FFF7DA;
+  --text-primary: #0D1226;
+  --text-secondary: #7F8190;
+  --input-bg: #FAFAFA;
+  --border-color: #E6E9F0;
+  --error-color: #c92a2a;
+  --error-bg: #fff7f7;
+  --footer-color: #585977;
+  --footer-link: #FFC107;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body, html, #root {
+  height: 100%;
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  background-color: var(--bg-yellow);
+}
+
+.auth-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--bg-yellow);
+}
+
+.auth-left {
+  flex: 1;
+  background: url("https://www.unsell.design/wp-content/uploads/2020/05/f6f57aa2-abstract-yellow-background-1536x1536.jpg") no-repeat center center/cover;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 50px 40px;
+}
+
+.auth-left-overlay {
+  background-color: rgba(13, 18, 38, 0.65);
+  padding: 60px 40px;
+  border-radius: 16px;
+  max-width: 480px;
+  box-shadow: 0 0 25px rgba(0,0,0,0.5);
+}
+
+.auth-left h1 {
+  font-weight: 900;
+  font-size: 42px;
+  margin: 0 0 16px;
+  line-height: 1.1;
+}
+
+.auth-left p {
+  font-weight: 500;
+  font-size: 18px;
+  color: #E6E6E6;
+  margin: 0;
+}
+
+.auth-right {
+  flex: 1;
+  background: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  min-width: 350px;
+  transition: all 0.3s ease-in-out;
+}
+
+.auth-form-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: 28px;
+}
+
+.login-header p {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 15px;
+  margin-top: 0.5rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Hide labels, use only placeholders */
+.login-form label {
+  display: none;
+}
+
+/* Inputs styling */
+.login-form input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 16px;
+  border: 1.8px solid var(--border-color);
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  font-weight: 500;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-form input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 6px 2px rgba(255, 193, 7, 0.4);
+}
+
+/* Two-columns grid for Create Account form */
+.signup-form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem 1.5rem;
+}
+
+/* Confirm password span two columns */
+.signup-confirm-wrapper {
+  grid-column: span 2;
+}
+
+/* Password wrapper & show/hide button */
+.password-wrapper {
+  position: relative;
+}
+
+.show-password-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #555;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  transition: color 0.25s ease;
+  z-index: 2;
+}
+
+.show-password-btn:hover {
+  color: var(--primary-color);
+}
+
+/* Error and info messages */
+.error-message {
+  background: var(--error-bg);
+  color: var(--error-color);
+  border-radius: 5px;
+  border: 1px solid #ffd8d8;
+  padding: 9px 0;
+  font-weight: 500;
+  font-size: 14px;
+  text-align: center;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+.info-message {
+  background: #dff0d8;
+  color: #3c763d;
+  border-radius: 5px;
+  border: 1px solid #d6e9c6;
+  padding: 9px 0;
+  font-weight: 500;
+  font-size: 14px;
+  text-align: center;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Submit button style */
+.submit-btn {
+  margin-top: 1rem;
+  height: 54px;
+  font-size: 18px;
+  font-weight: 800;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(255, 193, 7, 0.55);
+  transition: all 0.25s ease;
+  background-color: var(--primary-color);
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.submit-btn:hover {
+  /* background-color: #dc9f00;
+  box-shadow: 0 8px 20px rgba(255, 193, 7, 0.75); */
+  transform: translateY(-2px);
+}
+
+.submit-btn:active {
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.4);
+  transform: translateY(1px);
+}
+
+/* Forgot password styles */
+.forgot-password {
+  text-align: right;
+  font-size: 13px;
+  margin-top: -10px;
+  /* margin-bottom: 1.5rem; */
+  font-weight: 600;
+}
+
+.forgot-password button {
+  color: var(--primary-color);
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  transition: color 0.2s ease;
+}
+
+.forgot-password button:hover {
+  color: #e6ac00;
+  text-decoration: underline;
+}
+
+.footer-text {
+  text-align: center;
+  font-size: 14px;
+  color: var(--footer-color);
+  margin-top: 2rem;
+}
+
+.footer-text button {
+  color: var(--footer-link);
+  font-weight: 700;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-text button:hover {
+  color: #e6ac00;
+  text-decoration: underline;
+}
+
+/* Hide right form on mobile phones */
+@media (max-width: 599px) {
+  .auth-right {
+    display: none !important;
+  }
+  .auth-left {
+    flex: 1 1 100%;
+  }
+}
