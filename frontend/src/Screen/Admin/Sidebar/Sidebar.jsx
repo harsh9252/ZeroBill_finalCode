@@ -26,7 +26,8 @@ import {
   ChevronDown,
   ChevronRight,
   TrendingUp,
-  Settings2
+  Settings2,
+  GitFork
 } from 'lucide-react';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -65,7 +66,8 @@ const ICON_MAP = {
   ChevronDown,
   ChevronRight,
   TrendingUp,
-  Settings2
+  Settings2,
+  GitFork
 };
 
 export default function Sidebar({ onNavigate, collapsed = false, onToggle, onLogout, isPlanExpired, checkPlanExpiry, hasBusiness, checkBusiness }) {
@@ -266,7 +268,7 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, onLog
     [sidebarConfig.setting, localStorage.getItem('user')]
   );
 
-  const isSettingsPage = ['/profile', '/account', '/business', '/manageUser', '/voucher-settings'].includes(location.pathname);
+  const isSettingsPage = ['/profile', '/account', '/business', '/manageUser', '/voucher-settings', '/approval-workflow'].includes(location.pathname);
   const currentItems = isSettingsPage ? settingsItems : items;
 
   const footerItems = useMemo(
@@ -369,7 +371,8 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, onLog
       'profile': 'business',
       'sales-leads': 'salesLead',
       'lead-management': 'salesLead',
-      'voucher-settings': 'voucherSettings'
+      'voucher-settings': 'voucherSettings',
+      'approval-workflow': 'approvalWorkflow'
     };
 
     const activeKey = pathMapping[pathname] || pathname;

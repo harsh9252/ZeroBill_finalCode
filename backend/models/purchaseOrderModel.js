@@ -28,8 +28,8 @@ const PurchaseOrder = {
         status, total_amount, discount_amount, tax_amount, grand_total,
         notes, created_by, purchase_order_data, bank_id,
         po_agreement_number, remark,
-        level1_email, level2_email, level3_email
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        level1_email, level2_email, level3_email, approver_sequence
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -52,7 +52,8 @@ const PurchaseOrder = {
       sanitizeValue(orderData.remark),
       orderData.level1_email || null,
       orderData.level2_email || null,
-      orderData.level3_email || null
+      orderData.level3_email || null,
+      sanitizeValue(orderData.approver_sequence)
     ];
 
     const [result] = await pool.execute(query, values);
@@ -169,11 +170,25 @@ const PurchaseOrder = {
       }
       if (orderData.order_date !== undefined) {
         fields.push('order_date = ?');
-        values.push(orderData.order_date);
+        let formattedDate = orderData.order_date;
+        if (formattedDate) {
+          const d = new Date(formattedDate);
+          if (!isNaN(d.getTime())) {
+            formattedDate = d.toISOString().split('T')[0];
+          }
+        }
+        values.push(formattedDate);
       }
       if (orderData.updated_date !== undefined) {
         fields.push('updated_date = ?');
-        values.push(orderData.updated_date);
+        let formattedDate = orderData.updated_date;
+        if (formattedDate) {
+          const d = new Date(formattedDate);
+          if (!isNaN(d.getTime())) {
+            formattedDate = d.toISOString().split('T')[0];
+          }
+        }
+        values.push(formattedDate);
       }
       if (orderData.status !== undefined) {
         fields.push('status = ?');
@@ -226,6 +241,10 @@ const PurchaseOrder = {
       if (orderData.level3_email !== undefined) {
         fields.push('level3_email = ?');
         values.push(sanitizeValue(orderData.level3_email));
+      }
+      if (orderData.approver_sequence !== undefined) {
+        fields.push('approver_sequence = ?');
+        values.push(sanitizeValue(orderData.approver_sequence));
       }
       if (orderData.approved_by !== undefined) {
         fields.push('approved_by = ?');

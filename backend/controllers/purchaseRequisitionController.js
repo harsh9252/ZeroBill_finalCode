@@ -1,4 +1,5 @@
 const PurchaseRequisition = require('../models/purchaseRequisitionModel');
+const ApprovalWorkflow = require('../models/approvalWorkflowModel');
 const Business = require('../models/businessModel');
 const { validationResult } = require('express-validator');
 const { sendEmail } = require('../utils/nodemailerService');
@@ -50,11 +51,16 @@ const notifyApprovers = async (prData, targetEmail = null) => {
 
   if (!emailToNotify) {
     // Determine who to notify based on sequential logic
-    const levels = [
-      prData.level1_email ? prData.level1_email.toLowerCase().trim() : null,
-      prData.level2_email ? prData.level2_email.toLowerCase().trim() : null,
-      prData.level3_email ? prData.level3_email.toLowerCase().trim() : null
-    ].filter(e => e);
+    let levels = [];
+    if (prData.approver_sequence) {
+      levels = prData.approver_sequence.split(',').map(e => e.trim().toLowerCase()).filter(e => e);
+    } else {
+      levels = [
+        prData.level1_email ? prData.level1_email.toLowerCase().trim() : null,
+        prData.level2_email ? prData.level2_email.toLowerCase().trim() : null,
+        prData.level3_email ? prData.level3_email.toLowerCase().trim() : null
+      ].filter(e => e);
+    }
 
     const approvedBy = prData.approved_by ? prData.approved_by.split(',').map(e => e.trim().toLowerCase()) : [];
     
@@ -156,6 +162,21 @@ exports.createPR = async (req, res) => {
       }
     }
 
+    // Fetch dynamic approval workflow
+    const workflowLevels = await ApprovalWorkflow.getWorkflow(businessId, 'purchase_requisition');
+    let approverSequence = null;
+    let lvl1 = req.body.level1_email;
+    let lvl2 = req.body.level2_email;
+    let lvl3 = req.body.level3_email;
+
+    if (workflowLevels && workflowLevels.length > 0) {
+      const emails = workflowLevels.map(l => l.approver_email.trim().toLowerCase());
+      approverSequence = emails.join(',');
+      lvl1 = emails[0] || null;
+      lvl2 = emails[1] || null;
+      lvl3 = emails[2] || null;
+    }
+
     const prData = {
       business_id: businessId,
       pr_number: req.body.pr_number || await generateInvoiceNumber(businessId, 'purchase_requisition'),
@@ -171,9 +192,10 @@ exports.createPR = async (req, res) => {
       attachment: attachmentPaths.length > 0 ? JSON.stringify(attachmentPaths) : null,
       status: req.body.status || 'pending',
       approvers: req.body.approvers,
-      level1_email: req.body.level1_email,
-      level2_email: req.body.level2_email,
-      level3_email: req.body.level3_email,
+      level1_email: lvl1,
+      level2_email: lvl2,
+      level3_email: lvl3,
+      approver_sequence: approverSequence,
       items: req.body.items,
       created_by: req.user.id
     };
@@ -298,22 +320,45 @@ exports.updatePR = async (req, res) => {
     const finalAttachmentPaths = [...existingPaths, ...newAttachmentPaths];
     const attachmentValue = finalAttachmentPaths.length > 0 ? JSON.stringify(finalAttachmentPaths) : null;
 
+    // Load dynamic approval workflow if status is pending and we want to refresh/apply it
+    let approverSequence = req.body.approver_sequence || currentPR.approver_sequence;
+    let lvl1 = req.body.level1_email !== undefined ? req.body.level1_email : currentPR.level1_email;
+    let lvl2 = req.body.level2_email !== undefined ? req.body.level2_email : currentPR.level2_email;
+    let lvl3 = req.body.level3_email !== undefined ? req.body.level3_email : currentPR.level3_email;
+
+    if ((!approverSequence || approverSequence === '') && (!lvl1 || lvl1 === '') && currentPR.status === 'pending') {
+      const workflowLevels = await ApprovalWorkflow.getWorkflow(businessId, 'purchase_requisition');
+      if (workflowLevels && workflowLevels.length > 0) {
+        const emails = workflowLevels.map(l => l.approver_email.trim().toLowerCase());
+        approverSequence = emails.join(',');
+        lvl1 = emails[0] || null;
+        lvl2 = emails[1] || null;
+        lvl3 = emails[2] || null;
+      }
+    }
+
     const updatedData = {
       ...req.body,
       attachment: attachmentValue,
       items: req.body.items,
       currency: req.body.currency,
-      level1_email: req.body.level1_email,
-      level2_email: req.body.level2_email,
-      level3_email: req.body.level3_email
+      level1_email: lvl1,
+      level2_email: lvl2,
+      level3_email: lvl3,
+      approver_sequence: approverSequence
     };
 
     // Auto-complete if fully approved via manual override
-    const levels = [
-      updatedData.level1_email || currentPR.level1_email,
-      updatedData.level2_email || currentPR.level2_email,
-      updatedData.level3_email || currentPR.level3_email
-    ].map(e => e ? e.toLowerCase().trim() : null).filter(e => e);
+    let levels = [];
+    if (updatedData.approver_sequence) {
+      levels = updatedData.approver_sequence.split(',').map(e => e.trim().toLowerCase()).filter(e => e);
+    } else {
+      levels = [
+        updatedData.level1_email,
+        updatedData.level2_email,
+        updatedData.level3_email
+      ].map(e => e ? e.toLowerCase().trim() : null).filter(e => e);
+    }
     
     const approvedList = (updatedData.approved_by || currentPR.approved_by || '').split(',').map(e => e.trim().toLowerCase()).filter(e => e);
     
@@ -331,10 +376,11 @@ exports.updatePR = async (req, res) => {
 
     const updated = await PurchaseRequisition.update(id, businessId, updatedData);
 
-    if (updated && (req.body.status || req.body.approved_by || req.body.level1_email || req.body.level2_email || req.body.level3_email)) {
+    if (updated && (req.body.status || req.body.approved_by || req.body.level1_email || req.body.level2_email || req.body.level3_email || approverSequence)) {
       // Re-notify next level if status or approvals changed (Async - don't await)
       notifyApprovers({ ...currentPR, ...updatedData });
     }
+
 
     res.status(200).json({
       success: true,
@@ -431,11 +477,16 @@ exports.publicAction = async (req, res) => {
       detailMessage = `Purchase Requisition <strong>${pr.pr_number}</strong> has been rejected by <strong>${email}</strong>.`;
     } else {
       // Sequential Logic for Multi-Approval
-      const levels = [
-        pr.level1_email ? pr.level1_email.toLowerCase().trim() : null,
-        pr.level2_email ? pr.level2_email.toLowerCase().trim() : null,
-        pr.level3_email ? pr.level3_email.toLowerCase().trim() : null
-      ].filter(e => e);
+      let levels = [];
+      if (pr.approver_sequence) {
+        levels = pr.approver_sequence.split(',').map(e => e.trim().toLowerCase()).filter(e => e);
+      } else {
+        levels = [
+          pr.level1_email ? pr.level1_email.toLowerCase().trim() : null,
+          pr.level2_email ? pr.level2_email.toLowerCase().trim() : null,
+          pr.level3_email ? pr.level3_email.toLowerCase().trim() : null
+        ].filter(e => e);
+      }
       
       let currentApprovedBy = pr.approved_by ? pr.approved_by.split(',').map(e => e.trim().toLowerCase()) : [];
       const approverEmail = email.toLowerCase().trim();

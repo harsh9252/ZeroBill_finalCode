@@ -12,7 +12,7 @@ import QuotationForm from '../Quotation/QuotationForm.jsx';
 import GeneralEmptyState from '../../../Components/GeneralEmptyState.jsx';
 import DashboardBackButton from "../../../Components/DashboardBackButton.jsx";
 import MainLoader from '../../../Components/MainLoader.jsx';
-import { formatCurrency } from '../../../utils/currency';
+import { formatCurrency, getCurrencySymbol, convertFromINR, convertToINR } from '../../../utils/currency';
 import { showSuccessToast, showErrorToast, showLoadingModal, closeModal, showConfirmationDialog, showInfoToast } from '../../../Components/ActionMessageModel.jsx';
 import api from '../../../utils/api';
 import PDFFormatWrapper from '../../../Components/PDFFormat/PDFFormatWrapper.jsx';
@@ -43,22 +43,66 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
   const [editingHistory, setEditingHistory] = useState(null); // { itemIdx, histIdx }
   const [localRefresh, setLocalRefresh] = useState(0);
 
+  const displayTaxType = useMemo(() => {
+    let tType = 'VAT';
+    if (poData?.tax_type) tType = poData.tax_type;
+    else if (poData?.meta?.tax_type) tType = poData.meta.tax_type;
+    else if (poData?.order_data?.tax_type) tType = poData.order_data.tax_type;
+    else {
+      try {
+        const parsedMeta = typeof poData?.meta === 'string' ? JSON.parse(poData.meta) : (poData?.meta || poData?.order_data || {});
+        if (parsedMeta.tax_type) tType = parsedMeta.tax_type;
+        else if (parsedMeta.lines && parsedMeta.lines.length > 0 && parsedMeta.lines[0].taxType) {
+          tType = parsedMeta.lines[0].taxType;
+        }
+      } catch (e) { }
+    }
+    tType = (tType || 'VAT').toLowerCase();
+    if (tType === 'igst') return 'IGST (%)';
+    if (tType === 'cgst_sgst' || tType === 'gst') return 'SPLIT_GST';
+    return 'VAT (%)';
+  }, [poData]);
+
   useEffect(() => {
     const fetchHistoryAndInit = async () => {
       if (open && poData) {
         setIsHistoryLoading(true);
         let previousInvoices = [];
+        
+        let parsedMeta = {};
         try {
-          const bizId = localStorage.getItem('selectedBusinessId');
-          const response = await api.bookInvoiceAPI.getByPoReference(poData.id, bizId);
-          if (response?.success) {
-            previousInvoices = response.data || [];
-            setHistory(previousInvoices);
-          }
-        } catch (err) {
-          console.error('Error fetching book invoice history:', err);
-        } finally {
+          parsedMeta = typeof poData.meta === 'string' ? JSON.parse(poData.meta) : (poData.meta || poData.order_data || {});
+        } catch (e) {
+          console.error('Failed to parse PO metadata', e);
+        }
+        
+        if (parsedMeta.bookedInvoices) {
+          previousInvoices = parsedMeta.bookedInvoices;
+          setHistory(previousInvoices);
           setIsHistoryLoading(false);
+        } else {
+          try {
+            const bizId = localStorage.getItem('selectedBusinessId');
+            const response = await api.bookInvoiceAPI.getByPoReference(poData.id, bizId);
+            if (response?.success) {
+              previousInvoices = response.data || [];
+              setHistory(previousInvoices);
+              
+              // Migrate/Save this history to PO's own independent meta
+              const updatedMeta = { ...parsedMeta, bookedInvoices: previousInvoices };
+              const orderPayload = {
+                ...poData,
+                order_date: poData.order_date ? new Date(poData.order_date).toISOString().split('T')[0] : poData.order_date,
+                updated_date: poData.updated_date ? new Date(poData.updated_date).toISOString().split('T')[0] : poData.updated_date,
+                order_data: updatedMeta
+              };
+              await purchaseOrderAPI.update(poData.dbId, orderPayload, bizId);
+            }
+          } catch (err) {
+            console.error('Error migrating book invoice history:', err);
+          } finally {
+            setIsHistoryLoading(false);
+          }
         }
 
         let lines = [];
@@ -341,12 +385,52 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
       try {
         showLoadingModal('Deleting...');
         const bizId = localStorage.getItem('selectedBusinessId');
-        // In a real app, you might need to update the entire book_invoice record
-        // For now, we'll assume there's a delete endpoint or we handle it via update
-        await api.bookInvoiceAPI.delete(hInv.parentInvoiceId, bizId);
-        showSuccessToast('Invoice deleted successfully');
-        setLocalRefresh(prev => prev + 1); // Refresh local data instead of closing
+        
+        let poMeta = {};
+        try {
+          poMeta = typeof poData.meta === 'string' ? JSON.parse(poData.meta) : (poData.meta || poData.order_data || {});
+        } catch (e) {}
+        
+        const bookedInvoices = [...(poMeta.bookedInvoices || [])];
+        const invIdx = bookedInvoices.findIndex(inv => inv.id === hInv.parentInvoiceId);
+        if (invIdx !== -1) {
+          const targetInv = { ...bookedInvoices[invIdx] };
+          const lines = [...(targetInv.book_invoice_data?.lines || [])];
+          
+          const lineIdx = lines.findIndex(l => l.originalIndex === hInv.originalIndex);
+          if (lineIdx !== -1) {
+            const line = { ...lines[lineIdx] };
+            const supplierInvoices = (line.supplierInvoices || []).filter(si => si.invoiceNo !== hInv.invoiceNo);
+            line.supplierInvoices = supplierInvoices;
+            lines[lineIdx] = line;
+          }
+          
+          targetInv.book_invoice_data = {
+            ...targetInv.book_invoice_data,
+            lines: lines
+          };
+          
+          const hasAnyLeft = lines.some(l => (l.supplierInvoices || []).length > 0);
+          if (!hasAnyLeft) {
+            bookedInvoices.splice(invIdx, 1);
+          } else {
+            bookedInvoices[invIdx] = targetInv;
+          }
+        }
+        
+        const updatedMeta = { ...poMeta, bookedInvoices };
+        const orderPayload = {
+          ...poData,
+          order_date: poData.order_date ? new Date(poData.order_date).toISOString().split('T')[0] : poData.order_date,
+          updated_date: poData.updated_date ? new Date(poData.updated_date).toISOString().split('T')[0] : poData.updated_date,
+          order_data: updatedMeta
+        };
+        await purchaseOrderAPI.update(poData.dbId, orderPayload, bizId);
+        
+        showSuccessToast('Invoice deleted successfully from Purchase Order history');
+        setLocalRefresh(prev => prev + 1); // Refresh local data
       } catch (err) {
+        console.error('Error deleting history invoice:', err);
         showErrorToast('Failed to delete invoice');
       } finally {
         closeModal();
@@ -359,18 +443,142 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
     try {
       showLoadingModal('Saving changes...');
       const bizId = localStorage.getItem('selectedBusinessId');
-      // Update logic: we send the updated history row to the backend
-      await api.bookInvoiceAPI.update(hInv.parentInvoiceId, {
-        id: hInv.parentInvoiceId,
-        business_id: bizId,
-        // Send relevant fields for the specific supplier invoice update
-        updateType: 'supplier_invoice',
-        supplierInvoiceData: hInv
-      });
+      
+      let poMeta = {};
+      try {
+        poMeta = typeof poData.meta === 'string' ? JSON.parse(poData.meta) : (poData.meta || poData.order_data || {});
+      } catch (e) {}
+      
+      const bookedInvoices = [...(poMeta.bookedInvoices || [])];
+      const invIdx = bookedInvoices.findIndex(inv => inv.id === hInv.parentInvoiceId);
+      if (invIdx !== -1) {
+        const targetInv = { ...bookedInvoices[invIdx] };
+        const lines = [...(targetInv.book_invoice_data?.lines || [])];
+        
+        const lineIdx = lines.findIndex(l => l.originalIndex === hInv.originalIndex);
+        if (lineIdx !== -1) {
+          const line = { ...lines[lineIdx] };
+          const supplierInvoices = [...(line.supplierInvoices || [])];
+          
+          const siIdx = supplierInvoices.findIndex(si => si.invoiceNo === hInv.invoiceNo || si.id === hInv.id || si.date === hInv.date);
+          if (siIdx !== -1) {
+            supplierInvoices[siIdx] = {
+              ...supplierInvoices[siIdx],
+              invoiceNo: hInv.invoiceNo,
+              invoiceDate: hInv.invoiceDate,
+              receivedQty: parseFloat(hInv.receivedQty) || 0,
+              unitPrice: parseFloat(hInv.unitPrice) || 0,
+              discountPct: parseFloat(hInv.discountPct) || 0,
+              taxPct: parseFloat(hInv.taxPct) || 0,
+              amount: parseFloat(hInv.amount) || 0,
+              notes: hInv.notes,
+              file: hInv.file || null,
+              fileName: hInv.fileName || '',
+              fileType: hInv.fileType || ''
+            };
+          } else if (supplierInvoices.length === 1) {
+            supplierInvoices[0] = { ...hInv };
+          }
+          
+          line.supplierInvoices = supplierInvoices;
+          
+          const totalReceived = supplierInvoices.reduce((s, inv) => s + (parseFloat(inv.receivedQty) || 0), 0);
+          const grossAmt = supplierInvoices.reduce((s, inv) => s + ((parseFloat(inv.receivedQty) || 0) * (parseFloat(inv.unitPrice) || 0)), 0);
+          const discountValue = supplierInvoices.reduce((s, inv) => {
+            const itemGross = (parseFloat(inv.receivedQty) || 0) * (parseFloat(inv.unitPrice) || 0);
+            return s + (itemGross * (parseFloat(inv.discountPct) || 0) / 100);
+          }, 0);
+          const taxable = Math.max(0, grossAmt - discountValue);
+
+          const defaultTaxType = line.taxType || line.tax_type || 'GST';
+          const defaultTaxPct = parseFloat(line.taxPct) || parseFloat(line.tax_pct) || parseFloat(line.gstPct) || 0;
+
+          let cgstAmount = 0;
+          let sgstAmount = 0;
+          let igstAmount = 0;
+          let vatAmount = 0;
+          let totalTax = 0;
+
+          supplierInvoices.forEach(inv => {
+            const itemGross = (parseFloat(inv.receivedQty) || 0) * (parseFloat(inv.unitPrice) || 0);
+            const itemDisc = itemGross * ((parseFloat(inv.discountPct) || 0) / 100);
+            const itemTaxable = Math.max(0, itemGross - itemDisc);
+            const itemTaxPct = inv.taxPct !== undefined ? parseFloat(inv.taxPct) : defaultTaxPct;
+            const itemTaxType = (inv.taxType || defaultTaxType).toLowerCase();
+
+            let itemCgst = 0;
+            let itemSgst = 0;
+            let itemIgst = 0;
+            let itemVat = 0;
+
+            if (itemTaxType === 'cgst_sgst' || itemTaxType === 'gst') {
+              itemCgst = itemTaxable * ((itemTaxPct / 2) / 100);
+              itemSgst = itemTaxable * ((itemTaxPct / 2) / 100);
+            } else if (itemTaxType === 'igst') {
+              itemIgst = itemTaxable * (itemTaxPct / 100);
+            } else if (itemTaxType === 'vat') {
+              itemVat = itemTaxable * (itemTaxPct / 100);
+            }
+
+            cgstAmount += itemCgst;
+            sgstAmount += itemSgst;
+            igstAmount += itemIgst;
+            vatAmount += itemVat;
+            totalTax += (itemCgst + itemSgst + itemIgst + itemVat);
+          });
+
+          const lineTotal = taxable + totalTax;
+          const firstInv = supplierInvoices[0] || {};
+          const linePrice = totalReceived > 0 ? (grossAmt / totalReceived) : (parseFloat(firstInv.unitPrice) || parseFloat(line.price) || parseFloat(line.rate) || 0);
+          
+          line.qty = totalReceived;
+          line.price = linePrice;
+          line.rate = linePrice;
+          line.taxable = parseFloat(taxable.toFixed(2));
+          line.tax = parseFloat(totalTax.toFixed(2));
+          line.total = parseFloat(lineTotal.toFixed(2));
+          line.cgstAmount = parseFloat(cgstAmount.toFixed(2));
+          line.cgst_amount = parseFloat(cgstAmount.toFixed(2));
+          line.sgstAmount = parseFloat(sgstAmount.toFixed(2));
+          line.sgst_amount = parseFloat(sgstAmount.toFixed(2));
+          line.igstAmount = parseFloat(igstAmount.toFixed(2));
+          line.igst_amount = parseFloat(igstAmount.toFixed(2));
+          line.vatAmount = parseFloat(vatAmount.toFixed(2));
+          line.vat_amount = parseFloat(vatAmount.toFixed(2));
+
+          lines[lineIdx] = line;
+        }
+        
+        let newInvGrandTotal = 0;
+        lines.forEach(l => {
+          const lAmt = (l.supplierInvoices || []).reduce((s, inv) => s + (parseFloat(inv.amount) || 0), 0);
+          newInvGrandTotal += lAmt;
+        });
+
+        targetInv.total_amount = newInvGrandTotal;
+        targetInv.grand_total = newInvGrandTotal;
+
+        targetInv.book_invoice_data = {
+          ...targetInv.book_invoice_data,
+          lines: lines
+        };
+        bookedInvoices[invIdx] = targetInv;
+      }
+      
+      const updatedMeta = { ...poMeta, bookedInvoices };
+      const orderPayload = {
+        ...poData,
+        order_date: poData.order_date ? new Date(poData.order_date).toISOString().split('T')[0] : poData.order_date,
+        updated_date: poData.updated_date ? new Date(poData.updated_date).toISOString().split('T')[0] : poData.updated_date,
+        order_data: updatedMeta
+      };
+      await purchaseOrderAPI.update(poData.dbId, orderPayload, bizId);
+      
       setEditingHistory(null);
-      showSuccessToast('Changes saved successfully');
+      showSuccessToast('Changes saved successfully inside Purchase Order history');
       setLocalRefresh(prev => prev + 1); // Refresh local data
     } catch (err) {
+      console.error('Error saving history changes:', err);
       showErrorToast('Failed to save changes');
     } finally {
       closeModal();
@@ -480,9 +688,90 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
           const totalReceived = item.supplierInvoices.reduce((s, inv) => s + (parseFloat(inv.receivedQty) || 0), 0);
           const totalAmt = item.supplierInvoices.reduce((s, inv) => s + (parseFloat(inv.amount) || 0), 0);
           grandTotal += totalAmt;
+
+          const validInvoices = item.supplierInvoices.filter(inv => parseFloat(inv.receivedQty) > 0);
+          const firstInv = validInvoices[0] || item.supplierInvoices[0] || {};
+
+          const grossAmt = validInvoices.reduce((s, inv) => s + ((parseFloat(inv.receivedQty) || 0) * (parseFloat(inv.unitPrice) || 0)), 0);
+          const discountValue = validInvoices.reduce((s, inv) => {
+            const itemGross = (parseFloat(inv.receivedQty) || 0) * (parseFloat(inv.unitPrice) || 0);
+            return s + (itemGross * (parseFloat(inv.discountPct) || 0) / 100);
+          }, 0);
+          const taxable = Math.max(0, grossAmt - discountValue);
+
+          const defaultTaxType = item.taxType || item.tax_type || 'GST';
+          const defaultTaxPct = parseFloat(item.taxPct) || parseFloat(item.tax_pct) || parseFloat(item.gstPct) || 0;
+
+          let cgstAmount = 0;
+          let sgstAmount = 0;
+          let igstAmount = 0;
+          let vatAmount = 0;
+          let totalTax = 0;
+
+          validInvoices.forEach(inv => {
+            const itemGross = (parseFloat(inv.receivedQty) || 0) * (parseFloat(inv.unitPrice) || 0);
+            const itemDisc = itemGross * ((parseFloat(inv.discountPct) || 0) / 100);
+            const itemTaxable = Math.max(0, itemGross - itemDisc);
+            const itemTaxPct = inv.taxPct !== undefined ? parseFloat(inv.taxPct) : defaultTaxPct;
+            const itemTaxType = (inv.taxType || defaultTaxType).toLowerCase();
+
+            let itemCgst = 0;
+            let itemSgst = 0;
+            let itemIgst = 0;
+            let itemVat = 0;
+
+            if (itemTaxType === 'cgst_sgst' || itemTaxType === 'gst') {
+              itemCgst = itemTaxable * ((itemTaxPct / 2) / 100);
+              itemSgst = itemTaxable * ((itemTaxPct / 2) / 100);
+            } else if (itemTaxType === 'igst') {
+              itemIgst = itemTaxable * (itemTaxPct / 100);
+            } else if (itemTaxType === 'vat') {
+              itemVat = itemTaxable * (itemTaxPct / 100);
+            }
+
+            cgstAmount += itemCgst;
+            sgstAmount += itemSgst;
+            igstAmount += itemIgst;
+            vatAmount += itemVat;
+            totalTax += (itemCgst + itemSgst + itemIgst + itemVat);
+          });
+
+          const lineTotal = taxable + totalTax;
+          const linePrice = totalReceived > 0 ? (grossAmt / totalReceived) : (parseFloat(firstInv.unitPrice) || parseFloat(item.price) || parseFloat(item.rate) || 0);
+          const discountPct = firstInv.discountPct !== undefined ? parseFloat(firstInv.discountPct) : (parseFloat(item.discountPct) || parseFloat(item.discount_pct) || 0);
+          const taxPct = firstInv.taxPct !== undefined ? parseFloat(firstInv.taxPct) : defaultTaxPct;
+          const taxType = firstInv.taxType || defaultTaxType;
+
           return {
-            ...item,
+            description: item.description || item.name || '',
+            subtitle: item.subtitle || '',
+            hsn: item.hsn || '',
             qty: totalReceived,
+            unit: item.unit || 'PCS',
+            price: linePrice,
+            rate: linePrice,
+            discountPct: discountPct,
+            discount_pct: discountPct,
+            taxPct: taxPct,
+            tax_pct: taxPct,
+            taxType: taxType,
+            tax_type: taxType,
+            cgstPct: firstInv.cgstPct !== undefined ? parseFloat(firstInv.cgstPct) : (taxType.toLowerCase() === 'cgst_sgst' || taxType.toLowerCase() === 'gst' ? taxPct / 2 : 0),
+            sgstPct: firstInv.sgstPct !== undefined ? parseFloat(firstInv.sgstPct) : (taxType.toLowerCase() === 'cgst_sgst' || taxType.toLowerCase() === 'gst' ? taxPct / 2 : 0),
+            igstPct: firstInv.igstPct !== undefined ? parseFloat(firstInv.igstPct) : (taxType.toLowerCase() === 'igst' ? taxPct : 0),
+            vatPct: firstInv.vatPct !== undefined ? parseFloat(firstInv.vatPct) : (taxType.toLowerCase() === 'vat' ? taxPct : 0),
+            taxable: parseFloat(taxable.toFixed(2)),
+            tax: parseFloat(totalTax.toFixed(2)),
+            total: parseFloat(lineTotal.toFixed(2)),
+            cgstAmount: parseFloat(cgstAmount.toFixed(2)),
+            cgst_amount: parseFloat(cgstAmount.toFixed(2)),
+            sgstAmount: parseFloat(sgstAmount.toFixed(2)),
+            sgst_amount: parseFloat(sgstAmount.toFixed(2)),
+            igstAmount: parseFloat(igstAmount.toFixed(2)),
+            igst_amount: parseFloat(igstAmount.toFixed(2)),
+            vatAmount: parseFloat(vatAmount.toFixed(2)),
+            vat_amount: parseFloat(vatAmount.toFixed(2)),
+            originalIndex: item.originalIndex,
             supplierInvoices: item.supplierInvoices
               .filter(inv => inv.invoiceNo.trim() || parseFloat(inv.receivedQty) > 0)
               .map(inv => ({
@@ -537,7 +826,41 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
         }
       };
 
-      await bookInvoiceAPI.create(bookInvoicePayload);
+      const bookInvoiceResp = await bookInvoiceAPI.create(bookInvoicePayload);
+
+      // Save a completely independent copy inside the Purchase Order's own JSON meta data
+      try {
+        let currentPoMeta = {};
+        try {
+          currentPoMeta = typeof poData.meta === 'string' ? JSON.parse(poData.meta) : (poData.meta || poData.order_data || {});
+        } catch (e) {}
+
+        const newLocalInvoice = {
+          id: 'local-' + Date.now(),
+          book_invoice_number: bookInvoiceNumber,
+          invoice_date: invoiceDateStr,
+          book_invoice_data: {
+            lines: bookInvoiceLines
+          }
+        };
+
+        const currentBooked = currentPoMeta.bookedInvoices || [];
+        const updatedMeta = {
+          ...currentPoMeta,
+          bookedInvoices: [...currentBooked, newLocalInvoice]
+        };
+
+        const orderPayload = {
+          ...poData,
+          order_date: poData.order_date ? new Date(poData.order_date).toISOString().split('T')[0] : poData.order_date,
+          updated_date: poData.updated_date ? new Date(poData.updated_date).toISOString().split('T')[0] : poData.updated_date,
+          order_data: updatedMeta
+        };
+
+        await purchaseOrderAPI.update(poData.dbId, orderPayload, businessId);
+      } catch (err) {
+        console.error('Error saving local book invoice record to PO:', err);
+      }
 
       closeModal();
       setIsSubmitting(false);
@@ -565,6 +888,7 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
     background: '#fff',
     color: '#1e293b',
     width: '100%',
+    minWidth: '0',
   };
 
   return createPortal(
@@ -675,19 +999,25 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
                             <td colSpan="7" style={{ padding: 0, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
                               <div style={{ padding: '10px 16px 14px' }}>
                                 <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'block', width: '100%' }}>
-                                  <table style={{ width: '100%', minWidth: '1100px', borderCollapse: 'collapse', fontSize: '12px' }}>
+                                  <table style={{ width: 'max-content', minWidth: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                                     <thead>
                                       <tr style={{ background: '#e2e8f0' }}>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'left', fontSize: '11px', whiteSpace: 'nowrap' }}>Invoice No <span style={{ color: '#ef4444' }}>*</span></th>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'left', fontSize: '11px', whiteSpace: 'nowrap' }}>Date</th>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}>Received Qty</th>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}>UNIT</th>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}>UNIT PRICE</th>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}>DISC (%)</th>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}>VAT (%)</th>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}>TOTAL AMOUNT</th>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'left', fontSize: '11px', whiteSpace: 'nowrap' }}>Notes</th>
-                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}>Attachment</th>
+                                        <th style={{ padding: '6px 4px', color: '#475569', fontWeight: 600, textAlign: 'left', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>INVOICE NO <span style={{ color: '#ef4444' }}>*</span></th>
+                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'left', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>DATE</th>
+                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>RECEIVED QTY</th>
+                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>UNIT</th>
+                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>UNIT PRICE ({getCurrencySymbol(currency)})</th>
+                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>DISC (%)</th>
+                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{displayTaxType === 'SPLIT_GST' ? 'GST (%)' : displayTaxType}</th>
+                                        {displayTaxType === 'SPLIT_GST' && (
+                                          <>
+                                            <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>CGST (%)</th>
+                                            <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>SGST (%)</th>
+                                          </>
+                                        )}
+                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>TOTAL AMOUNT ({getCurrencySymbol(currency)})</th>
+                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'left', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>NOTES</th>
+                                        <th style={{ padding: '6px 8px', color: '#475569', fontWeight: 600, textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>ATTACHMENT</th>
                                         <th style={{ padding: '6px 8px', textAlign: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}></th>
                                       </tr>
                                     </thead>
@@ -699,16 +1029,16 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
                                             <td style={{ padding: '6px 8px' }}>
                                               <input
                                                 readOnly={!isEditing}
-                                                style={{ ...inputStyle, minWidth: '100px', background: isEditing ? '#fff' : 'transparent' }}
-                                                value={hInv.invoiceNo || ''}
-                                                onChange={e => updateHistoryField(idx, hIdx, 'invoiceNo', e.target.value)}
+                                                value={hInv.invoiceNo || ""}
+                                                style={{ ...inputStyle, width: `${Math.max(12, String(hInv.invoiceNo || "").length) * 8 + 20}px`, background: isEditing ? "#fff" : "transparent" }}
+                                                onChange={e => updateHistoryField(idx, hIdx, "invoiceNo", e.target.value)}
                                               />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
                                               <input
                                                 type={isEditing ? "date" : "text"}
                                                 readOnly={!isEditing}
-                                                style={{ ...inputStyle, minWidth: '100px', background: isEditing ? '#fff' : 'transparent' }}
+                                                style={{ ...inputStyle, minWidth: '120px', background: isEditing ? '#fff' : 'transparent' }}
                                                 value={isEditing ? hInv.invoiceDate : formatDate(hInv.invoiceDate || hInv.date)}
                                                 onChange={e => updateHistoryField(idx, hIdx, 'invoiceDate', e.target.value)}
                                               />
@@ -718,8 +1048,7 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
                                                 <input
                                                   type="number"
                                                   readOnly={!isEditing}
-                                                  style={{ ...inputStyle, minWidth: '60px', textAlign: 'center', background: isEditing ? '#fff' : 'transparent', borderColor: (item.error && item.errorType === `hist-${hIdx}`) ? '#ef4444' : '#d1d5db' }}
-                                                  value={hInv.receivedQty}
+                                                  style={{ ...inputStyle, width: `${Math.max(8, String(hInv.receivedQty || "").length) * 8 + 20}px`, textAlign: "center", background: isEditing ? "#fff" : "transparent", borderColor: (item.error && item.errorType === `hist-${hIdx}`) ? "#ef4444" : "#d1d5db" }} value={hInv.receivedQty}
                                                   onChange={e => updateHistoryField(idx, hIdx, 'receivedQty', e.target.value)}
                                                 />
                                                 {item.error && item.errorType === `hist-${hIdx}` && (
@@ -729,56 +1058,79 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
                                                 )}
                                               </div>
                                             </td>
-                                            <td style={{ padding: '6px 8px' }}><input readOnly style={{ ...inputStyle, minWidth: '60px', textAlign: 'center', background: 'transparent' }} value={hInv.unit || '—'} /></td>
+                                            <td style={{ padding: '6px 8px' }}><input readOnly style={{ ...inputStyle, width: `${Math.max(5, String(hInv.unit || "").length) * 8 + 20}px`, textAlign: "center", background: "transparent" }} value={hInv.unit || "—"} /></td>
                                             <td style={{ padding: '6px 8px' }}>
-                                              <input
-                                                type="number"
-                                                readOnly={!isEditing}
-                                                style={{ ...inputStyle, minWidth: '90px', textAlign: 'center', background: isEditing ? '#fff' : 'transparent' }}
-                                                value={hInv.unitPrice}
-                                                onChange={e => updateHistoryField(idx, hIdx, 'unitPrice', e.target.value)}
+                                              <input type="number" readOnly={!isEditing} style={{ ...inputStyle, width: `${Math.max(8, String(hInv.unitPrice ? convertFromINR(hInv.unitPrice, currency).toFixed(2) : "").length) * 8 + 20}px`, textAlign: "center", background: isEditing ? "#fff" : "transparent" }} value={hInv.unitPrice ? convertFromINR(hInv.unitPrice, currency).toFixed(2) : ""}
+                                                onChange={e => {
+                                                  const val = e.target.value;
+                                                  updateHistoryField(idx, hIdx, 'unitPrice', val === '' ? '' : convertToINR(parseFloat(val) || 0, currency));
+                                                }}
                                               />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
-                                              <input
-                                                type="number"
-                                                readOnly={!isEditing}
-                                                style={{ ...inputStyle, minWidth: '60px', textAlign: 'center', background: isEditing ? '#fff' : 'transparent' }}
-                                                value={hInv.discountPct}
+                                              <input type="number" readOnly={!isEditing} style={{ ...inputStyle, width: `${Math.max(5, String(hInv.discountPct || "").length) * 8 + 20}px`, textAlign: "center", background: isEditing ? "#fff" : "transparent" }} value={hInv.discountPct}
                                                 onChange={e => updateHistoryField(idx, hIdx, 'discountPct', e.target.value)}
                                               />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
-                                              <input
-                                                type="number"
-                                                readOnly={!isEditing}
-                                                style={{ ...inputStyle, minWidth: '60px', textAlign: 'center', background: isEditing ? '#fff' : 'transparent' }}
-                                                value={hInv.taxPct}
+                                              <input type="number" readOnly={!isEditing} style={{ ...inputStyle, width: `${Math.max(5, String(hInv.taxPct || "").length) * 8 + 20}px`, textAlign: "center", background: isEditing ? "#fff" : "transparent" }} value={hInv.taxPct}
                                                 onChange={e => updateHistoryField(idx, hIdx, 'taxPct', e.target.value)}
                                               />
                                             </td>
-                                            <td style={{ padding: '6px 8px' }}><input readOnly style={{ ...inputStyle, minWidth: '100px', textAlign: 'center', fontWeight: 600, background: 'transparent' }} value={hInv.amount} /></td>
+                                            {displayTaxType === 'SPLIT_GST' && (
+                                              <>
+                                                <td style={{ padding: '6px 8px' }}>
+                                                  <input type="number" readOnly style={{ ...inputStyle, width: `${Math.max(5, String((hInv.taxPct / 2) || "").length) * 8 + 20}px`, textAlign: "center", background: "transparent" }} value={(hInv.taxPct / 2) || 0} />
+                                                </td>
+                                                <td style={{ padding: '6px 8px' }}>
+                                                  <input type="number" readOnly style={{ ...inputStyle, width: `${Math.max(5, String((hInv.taxPct / 2) || "").length) * 8 + 20}px`, textAlign: "center", background: "transparent" }} value={(hInv.taxPct / 2) || 0} />
+                                                </td>
+                                              </>
+                                            )}
+                                            <td style={{ padding: '6px 8px' }}><input readOnly style={{ ...inputStyle, width: `${Math.max(10, String(hInv.amount || "").length) * 8 + 20}px`, textAlign: "center", fontWeight: 600, background: "transparent" }} value={hInv.amount ? formatCurrency(hInv.amount, currency) : ""} /></td>
                                             <td style={{ padding: '6px 8px' }}>
                                               <input
                                                 readOnly={!isEditing}
-                                                style={{ ...inputStyle, minWidth: '120px', background: isEditing ? '#fff' : 'transparent' }}
-                                                value={hInv.notes || ''}
-                                                onChange={e => updateHistoryField(idx, hIdx, 'notes', e.target.value)}
+                                                value={hInv.notes || ""}
+                                                style={{ ...inputStyle, width: `${Math.max(6, String(hInv.notes || "").length) * 7 + 15}px`, background: isEditing ? "#fff" : "transparent" }}
+                                                onChange={e => updateHistoryField(idx, hIdx, "notes", e.target.value)}
                                               />
                                             </td>
                                             <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                                              {hInv.file && !isEditing && (
-                                                <button
-                                                  onClick={() => {
-                                                    const fileUrl = hInv.file.startsWith('data:') ? hInv.file : `${backendURL}${hInv.file.startsWith('/') ? '' : '/'}${hInv.file}`;
-                                                    openPreview({ url: fileUrl, type: hInv.file.toLowerCase().endsWith('.pdf') || hInv.file.startsWith('data:application/pdf') ? 'application/pdf' : 'image/jpeg', name: 'Invoice' });
-                                                  }}
-                                                  style={{ background: 'rgba(18, 144, 70, 0.1)', color: '#129046', padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: 700, border: '1px solid rgba(18, 144, 70, 0.3)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                                  title="View Invoice"
-                                                >
-                                                  <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                  View
-                                                </button>
+                                              {!isEditing ? (
+                                                hInv.file && (
+                                                  <button
+                                                    onClick={() => {
+                                                      const fileUrl = hInv.file.startsWith('data:') ? hInv.file : `${backendURL}${hInv.file.startsWith('/') ? '' : '/'}${hInv.file}`;
+                                                      openPreview({ url: fileUrl, type: hInv.file.toLowerCase().endsWith('.pdf') || hInv.file.startsWith('data:application/pdf') ? 'application/pdf' : 'image/jpeg', name: 'Invoice' });
+                                                    }}
+                                                    style={{ background: 'rgba(18, 144, 70, 0.1)', color: '#129046', padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: 700, border: '1px solid rgba(18, 144, 70, 0.3)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                    title="View Invoice"
+                                                  >
+                                                    <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                    View
+                                                  </button>
+                                                )
+                                              ) : (
+                                                <label style={{ cursor: 'pointer', background: hInv.fileName || hInv.file ? '#129046' : '#334155', color: '#ffffff', border: `1px solid ${hInv.fileName || hInv.file ? '#129046' : '#1e293b'}`, borderRadius: '6px', padding: '0 10px', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '28px', transition: '0.2s' }}>
+                                                  {hInv.fileName || hInv.file ? 'Uploaded' : 'Upload'}
+                                                  <input type="file" style={{ display: 'none' }} onChange={e => {
+                                                    const file = e.target.files[0];
+                                                    if (!file) return;
+                                                    const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                                                    if (!allowed.includes(file.type)) {
+                                                      showErrorToast('Only PDF, JPEG, PNG, WEBP files are allowed.');
+                                                      return;
+                                                    }
+                                                    const reader = new FileReader();
+                                                    reader.onload = (ev) => {
+                                                      updateHistoryField(idx, hIdx, 'file', ev.target.result);
+                                                      updateHistoryField(idx, hIdx, 'fileName', file.name);
+                                                      updateHistoryField(idx, hIdx, 'fileType', file.type);
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                  }} />
+                                                </label>
                                               )}
                                             </td>
                                             <td style={{ padding: '6px 8px', textAlign: 'center' }}>
@@ -802,14 +1154,14 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
                                       {item.supplierInvoices.map((inv, invIdx) => (
                                         <tr key={invIdx} style={{ borderTop: '1px solid #e9ecef', background: '#fff' }}>
                                           <td style={{ padding: '6px 8px' }}>
-                                            <input style={{ ...inputStyle, minWidth: '100px', borderColor: (parseFloat(inv.receivedQty) > 0 && !inv.invoiceNo.trim()) ? '#ef4444' : '#d1d5db' }} placeholder="Invoice No" value={inv.invoiceNo} onChange={e => updateInvoiceField(idx, invIdx, 'invoiceNo', e.target.value)} />
+                                            <input style={{ ...inputStyle, width: `${Math.max(12, String(inv.invoiceNo || "").length) * 8 + 20}px`, borderColor: (parseFloat(inv.receivedQty) > 0 && !inv.invoiceNo.trim()) ? "#ef4444" : "#d1d5db" }} placeholder="Invoice No" value={inv.invoiceNo} onChange={e => updateInvoiceField(idx, invIdx, 'invoiceNo', e.target.value)} />
                                           </td>
                                           <td style={{ padding: '6px 8px' }}>
-                                            <input type="date" style={{ ...inputStyle, minWidth: '110px' }} value={inv.invoiceDate} onChange={e => updateInvoiceField(idx, invIdx, 'invoiceDate', e.target.value)} />
+                                            <input type="date" style={{ ...inputStyle, minWidth: '120px' }} value={inv.invoiceDate} onChange={e => updateInvoiceField(idx, invIdx, 'invoiceDate', e.target.value)} />
                                           </td>
                                           <td style={{ padding: '6px 8px' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                              <input type="number" style={{ ...inputStyle, minWidth: '60px', textAlign: 'center', borderColor: (item.error && item.errorType === 'new') ? '#ef4444' : '#d1d5db' }} value={inv.receivedQty} onChange={e => updateInvoiceField(idx, invIdx, 'receivedQty', e.target.value)} />
+                                              <input type="number" style={{ ...inputStyle, width: `${Math.max(8, String(inv.receivedQty || "").length) * 8 + 20}px`, textAlign: "center", borderColor: (item.error && item.errorType === "new") ? "#ef4444" : "#d1d5db" }} value={inv.receivedQty} onChange={e => updateInvoiceField(idx, invIdx, 'receivedQty', e.target.value)} />
                                               {item.error && item.errorType === 'new' && (
                                                 <div style={{ color: '#dc2626', fontSize: '10px', fontWeight: 500, marginTop: '3px', whiteSpace: 'nowrap' }}>
                                                   Remaining QTY is {item.remainingQty} only
@@ -818,22 +1170,35 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
                                             </div>
                                           </td>
                                           <td style={{ padding: '6px 8px' }}>
-                                            <input readOnly style={{ ...inputStyle, minWidth: '60px', textAlign: 'center' }} value={inv.unit} />
+                                            <input readOnly style={{ ...inputStyle, width: `${Math.max(5, String(inv.unit || "").length) * 8 + 20}px`, textAlign: "center" }} value={inv.unit} />
                                           </td>
                                           <td style={{ padding: '6px 8px' }}>
-                                            <input type="number" style={{ ...inputStyle, minWidth: '90px', textAlign: 'center' }} value={inv.unitPrice} onChange={e => updateInvoiceField(idx, invIdx, 'unitPrice', e.target.value)} />
+                                            <input type="number" style={{ ...inputStyle, width: `${Math.max(8, String(inv.unitPrice ? convertFromINR(inv.unitPrice, currency).toFixed(2) : "").length) * 8 + 20}px`, textAlign: "center" }} value={inv.unitPrice ? convertFromINR(inv.unitPrice, currency).toFixed(2) : ""} onChange={e => {
+                                              const val = e.target.value;
+                                              updateInvoiceField(idx, invIdx, 'unitPrice', val === '' ? '' : convertToINR(parseFloat(val) || 0, currency));
+                                            }} />
                                           </td>
                                           <td style={{ padding: '6px 8px' }}>
-                                            <input type="number" style={{ ...inputStyle, minWidth: '60px', textAlign: 'center' }} value={inv.discountPct} onChange={e => updateInvoiceField(idx, invIdx, 'discountPct', e.target.value)} />
+                                            <input type="number" style={{ ...inputStyle, width: `${Math.max(5, String(inv.discountPct || "").length) * 8 + 20}px`, textAlign: "center" }} value={inv.discountPct} onChange={e => updateInvoiceField(idx, invIdx, 'discountPct', e.target.value)} />
                                           </td>
                                           <td style={{ padding: '6px 8px' }}>
-                                            <input type="number" style={{ ...inputStyle, minWidth: '60px', textAlign: 'center' }} value={inv.taxPct} onChange={e => updateInvoiceField(idx, invIdx, 'taxPct', e.target.value)} />
+                                            <input type="number" style={{ ...inputStyle, width: `${Math.max(5, String(inv.taxPct || "").length) * 8 + 20}px`, textAlign: "center" }} value={inv.taxPct} onChange={e => updateInvoiceField(idx, invIdx, 'taxPct', e.target.value)} />
+                                          </td>
+                                          {displayTaxType === 'SPLIT_GST' && (
+                                            <>
+                                              <td style={{ padding: '6px 8px' }}>
+                                                <input type="number" readOnly style={{ ...inputStyle, width: `${Math.max(5, String((inv.taxPct / 2) || "").length) * 8 + 20}px`, textAlign: "center", background: "#f8fafc" }} value={(inv.taxPct / 2) || 0} />
+                                              </td>
+                                              <td style={{ padding: '6px 8px' }}>
+                                                <input type="number" readOnly style={{ ...inputStyle, width: `${Math.max(5, String((inv.taxPct / 2) || "").length) * 8 + 20}px`, textAlign: "center", background: "#f8fafc" }} value={(inv.taxPct / 2) || 0} />
+                                              </td>
+                                            </>
+                                          )}
+                                          <td style={{ padding: '6px 8px' }}>
+                                            <input readOnly style={{ ...inputStyle, width: `${Math.max(10, String(inv.amount || "").length) * 8 + 20}px`, textAlign: "center", fontWeight: 600 }} value={inv.amount ? formatCurrency(inv.amount, currency) : ""} />
                                           </td>
                                           <td style={{ padding: '6px 8px' }}>
-                                            <input readOnly style={{ ...inputStyle, minWidth: '100px', textAlign: 'center', fontWeight: 600 }} value={inv.amount} />
-                                          </td>
-                                          <td style={{ padding: '6px 8px' }}>
-                                            <input style={{ ...inputStyle, minWidth: '120px' }} placeholder="Notes" value={inv.notes} onChange={e => updateInvoiceField(idx, invIdx, 'notes', e.target.value)} />
+                                            <input style={{ ...inputStyle, width: `${Math.max(6, String(inv.notes || "").length) * 7 + 15}px` }} placeholder="Notes" value={inv.notes} onChange={e => updateInvoiceField(idx, invIdx, 'notes', e.target.value)} />
                                           </td>
                                           <td style={{ padding: '6px 8px', textAlign: 'center' }}>
                                             <label style={{ cursor: 'pointer', background: inv.fileName ? '#129046' : '#334155', color: '#ffffff', border: `1px solid ${inv.fileName ? '#129046' : '#1e293b'}`, borderRadius: '6px', padding: '0 10px', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '28px', transition: '0.2s' }}>
@@ -1343,6 +1708,8 @@ export default function PurchaseOrder({ currency }) {
                 level1_email: order.level1_email || '',
                 level2_email: order.level2_email || '',
                 level3_email: order.level3_email || '',
+                approver_sequence: order.approver_sequence || '',
+                approved_by: order.approved_by || '',
                 meta: order.order_data || {}
               }));
               setRows(transformedData);
@@ -1394,6 +1761,8 @@ export default function PurchaseOrder({ currency }) {
             level1_email: order.level1_email || '',
             level2_email: order.level2_email || '',
             level3_email: order.level3_email || '',
+            approver_sequence: order.approver_sequence || '',
+            approved_by: order.approved_by || '',
             meta: order.order_data || {}
           }));
           setRows(transformedData);
@@ -1551,6 +1920,8 @@ export default function PurchaseOrder({ currency }) {
       level1_email: row.level1_email || '',
       level2_email: row.level2_email || '',
       level3_email: row.level3_email || '',
+      approver_sequence: row.approver_sequence || '',
+      approved_by: row.approved_by || '',
       type: 'purchaseOrder',
       meta: {
         invoiceNo: row.id,
@@ -1751,13 +2122,7 @@ export default function PurchaseOrder({ currency }) {
               </svg>
             </button>
           )}
-          <button
-            onClick={() => generatePDF(previewData)}
-            disabled={isGeneratingPDF}
-            className="h-8 px-2 sm:px-3 bg-gradient-to-r from-[#129046] to-[#9ccc53] hover:from-[#129046]/90 hover:to-[#9ccc53]/90 text-white rounded-[7px] disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm font-medium transition-all duration-200 focus:outline-none flex items-center gap-1.5 whitespace-nowrap"
-          >
-            {isGeneratingPDF ? <span className="hidden sm:inline">Generating...</span> : <><Download size={14} className="sm:w-4 sm:h-4" /><span className="hidden sm:inline">Download PDF</span><span className="sm:hidden">PDF</span></>}
-          </button>
+
         </div>
       </div>
     </div>

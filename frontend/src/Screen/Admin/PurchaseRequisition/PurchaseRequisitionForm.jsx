@@ -28,6 +28,7 @@ import {
   supplierAPI,
   purchaseRequisitionAPI,
   inventoryAPI,
+  approvalWorkflowAPI,
 } from '../../../utils/api';
 import { subUserService } from '../../../services/subUserService';
 import { showSuccessToast, showErrorToast, showLoadingModal, closeModal, showErrorModal, showPremiumInputDialog } from "../../../Components/ActionMessageModel.jsx";
@@ -197,6 +198,7 @@ const PurchaseRequisitionForm = ({ prId, onClose, onRefresh, currency }) => {
   const [items, setItems] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [existingAttachments, setExistingAttachments] = useState([]);
+  const [workflowSettings, setWorkflowSettings] = useState(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [products, setProducts] = useState([]);
   const [customUnits, setCustomUnits] = useState(() => {
@@ -221,6 +223,7 @@ const PurchaseRequisitionForm = ({ prId, onClose, onRefresh, currency }) => {
     }
     fetchProducts();
     fetchSubUsers();
+    fetchWorkflowSettings();
   }, [prId]);
 
   // Currency change effect — re-converts all existing item prices
@@ -252,6 +255,21 @@ const PurchaseRequisitionForm = ({ prId, onClose, onRefresh, currency }) => {
     // Re-fetch products catalogue with new currency
     fetchProducts();
   }, [currency]);
+
+  const fetchWorkflowSettings = async () => {
+    try {
+      const selectedBusinessId = localStorage.getItem('selectedBusinessId');
+      if (!selectedBusinessId) return;
+      const response = await approvalWorkflowAPI.getWorkflow('purchase_requisition', selectedBusinessId);
+      if (response.success && response.data && response.data.length > 0) {
+        setWorkflowSettings(response.data);
+      } else {
+        setWorkflowSettings(null);
+      }
+    } catch (err) {
+      console.error('Error fetching workflow settings:', err);
+    }
+  };
 
   const fetchSubUsers = async () => {
     try {
@@ -371,6 +389,24 @@ const PurchaseRequisitionForm = ({ prId, onClose, onRefresh, currency }) => {
     } catch (error) {
       console.error('Error fetching PR number:', error);
     }
+  };
+
+  const getActiveSequence = () => {
+    if (formData.approver_sequence) {
+      return formData.approver_sequence.split(',').map((email, idx) => ({
+        level_number: idx + 1,
+        approver_email: email.trim()
+      }));
+    }
+    if (workflowSettings && workflowSettings.length > 0) {
+      return workflowSettings;
+    }
+    // Fallback legacy levels
+    const levels = [];
+    if (formData.level1_email) levels.push({ level_number: 1, approver_email: formData.level1_email });
+    if (formData.level2_email) levels.push({ level_number: 2, approver_email: formData.level2_email });
+    if (formData.level3_email) levels.push({ level_number: 3, approver_email: formData.level3_email });
+    return levels;
   };
 
   const handleInputChange = (e) => {
@@ -783,89 +819,138 @@ const PurchaseRequisitionForm = ({ prId, onClose, onRefresh, currency }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 space-y-6">
-              <h2 className="text-lg font-bold text-yellow-900 pb-2 border-b border-gray-50">Approval Workflow</h2>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-[10px]">1</div>
-                    Level 1 Approver Email
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      list="subuser-list"
-                      name="level1_email"
-                      value={formData.level1_email}
-                      onChange={handleInputChange}
-                      placeholder="Enter Level 1 approver email"
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 font-medium outline-none transition-all bg-gray-50/30"
-                    />
-                    {/* <select 
-                      value={formData.approved_by?.toLowerCase().includes(formData.level1_email?.toLowerCase().trim()) && formData.level1_email ? 'approved' : 'pending'}
-                      onChange={(e) => handleLevelStatusChange(1, e.target.value)}
-                      className={`w-32 px-2 py-2 text-xs font-bold rounded-xl border transition-all outline-none ${formData.approved_by?.toLowerCase().includes(formData.level1_email?.toLowerCase().trim()) && formData.level1_email ? 'bg-green-50 border-green-200 text-green-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'}`}
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="approved">Approved</option>
-                    </select> */}
-                  </div>
+              <h2 className="text-lg font-bold text-yellow-900 pb-2 border-b border-gray-50">
+                Approval Workflow
+              </h2>
+
+              {/* Dynamic Stepper Visuals */}
+              {getActiveSequence().length > 0 && (formData.approver_sequence || (workflowSettings && workflowSettings.length > 0)) ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-2">
+                  {getActiveSequence().map((level, index) => {
+                    const email = level.approver_email.trim().toLowerCase();
+                    const approvedList = formData.approved_by ? formData.approved_by.split(',').map(e => e.trim().toLowerCase()).filter(e => e) : [];
+                    const isApproved = approvedList.includes(email);
+                    const isCurrent = !isApproved && (index === approvedList.length) && formData.status !== 'rejected';
+                    const isRejected = formData.status === 'rejected' && !isApproved && (index === approvedList.length);
+                    const isUpcoming = !isApproved && !isCurrent && !isRejected;
+
+                    return (
+                      <div key={level.level_number} className="flex flex-col items-center relative text-center">
+                        {/* Perfect-alignment horizontal connector bridge */}
+                        {index < getActiveSequence().length - 1 && (index + 1) % 3 !== 0 && (
+                          <div className={`absolute top-4 left-[calc(50%+16px)] w-[calc(100%-32px)] h-[2px] hidden md:block z-0 ${
+                            isApproved ? 'bg-green-200' : 'bg-gray-100'
+                          }`} />
+                        )}
+
+                        {/* Node circle */}
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all shadow-sm relative z-10 ${
+                            isApproved
+                              ? 'bg-green-500 text-white ring-4 ring-green-100'
+                              : isRejected
+                                ? 'bg-red-500 text-white ring-4 ring-red-100'
+                                : isCurrent
+                                  ? 'bg-amber-500 text-white ring-4 ring-amber-100 animate-pulse'
+                                  : 'bg-gray-100 text-gray-400 ring-4 ring-gray-50'
+                          }`}
+                        >
+                          {isApproved ? '✓' : isRejected ? '✕' : level.level_number}
+                        </div>
+
+                        {/* Step Card Content */}
+                        <div className={`w-full bg-white p-3.5 rounded-xl border transition-all mt-4 relative z-10 ${
+                          isCurrent
+                            ? 'border-amber-200 shadow-sm shadow-amber-500/5 bg-amber-50/10'
+                            : 'border-gray-100/80 shadow-sm shadow-gray-50/5'
+                        }`}>
+                          <div className="flex flex-col items-center gap-1.5">
+                            <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                              Level {level.level_number} Approver
+                            </span>
+                            <span
+                              className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                                isApproved
+                                  ? 'bg-green-50 text-green-600 border border-green-100'
+                                  : isRejected
+                                    ? 'bg-red-50 text-red-600 border border-red-100'
+                                    : isCurrent
+                                      ? 'bg-amber-50 text-amber-600 border border-amber-100 shadow-sm shadow-amber-500/5'
+                                      : 'bg-gray-50 text-gray-500 border border-gray-100'
+                              }`}
+                            >
+                              {isApproved ? 'Approved' : isRejected ? 'Rejected' : isCurrent ? 'Pending Action' : 'Upcoming'}
+                            </span>
+                            <p className="text-xs font-normal text-gray-500 mt-1 truncate max-w-full" title={level.approver_email}>
+                              {level.approver_email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-[10px]">2</div>
-                    Level 2 Approver Email
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      list="subuser-list"
-                      name="level2_email"
-                      value={formData.level2_email}
-                      onChange={handleInputChange}
-                      placeholder="Enter Level 2 approver email"
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 font-medium outline-none transition-all bg-gray-50/30"
-                    />
-                    {/* <select 
-                      value={formData.approved_by?.toLowerCase().includes(formData.level2_email?.toLowerCase().trim()) && formData.level2_email ? 'approved' : 'pending'}
-                      onChange={(e) => handleLevelStatusChange(2, e.target.value)}
-                      className={`w-32 px-2 py-2 text-xs font-bold rounded-xl border transition-all outline-none ${formData.approved_by?.toLowerCase().includes(formData.level2_email?.toLowerCase().trim()) && formData.level2_email ? 'bg-green-50 border-green-200 text-green-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'}`}
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="approved">Approved</option>
-                    </select> */}
+              ) : (
+                /* Fallback legacy manual email inputs */
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-[10px]">1</div>
+                      Level 1 Approver Email
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        list="subuser-list"
+                        name="level1_email"
+                        value={formData.level1_email}
+                        onChange={handleInputChange}
+                        placeholder="Enter Level 1 approver email"
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 font-medium outline-none transition-all bg-gray-50/30"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-[10px]">3</div>
-                    Level 3 Approver Email
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      list="subuser-list"
-                      name="level3_email"
-                      value={formData.level3_email}
-                      onChange={handleInputChange}
-                      placeholder="Enter Level 3 approver email"
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 font-medium outline-none transition-all bg-gray-50/30"
-                    />
-                    {/* <select 
-                      value={formData.approved_by?.toLowerCase().includes(formData.level3_email?.toLowerCase().trim()) && formData.level3_email ? 'approved' : 'pending'}
-                      onChange={(e) => handleLevelStatusChange(3, e.target.value)}
-                      className={`w-32 px-2 py-2 text-xs font-bold rounded-xl border transition-all outline-none ${formData.approved_by?.toLowerCase().includes(formData.level3_email?.toLowerCase().trim()) && formData.level3_email ? 'bg-green-50 border-green-200 text-green-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'}`}
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="approved">Approved</option>
-                    </select> */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-[10px]">2</div>
+                      Level 2 Approver Email
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        list="subuser-list"
+                        name="level2_email"
+                        value={formData.level2_email}
+                        onChange={handleInputChange}
+                        placeholder="Enter Level 2 approver email"
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 font-medium outline-none transition-all bg-gray-50/30"
+                      />
+                    </div>
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-[10px]">3</div>
+                      Level 3 Approver Email
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        list="subuser-list"
+                        name="level3_email"
+                        value={formData.level3_email}
+                        onChange={handleInputChange}
+                        placeholder="Enter Level 3 approver email"
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 font-medium outline-none transition-all bg-gray-50/30"
+                      />
+                    </div>
+                  </div>
+                  <datalist id="subuser-list">
+                    {subUsers.map(u => (
+                      <option key={u.id} value={u.email}>{u.name}</option>
+                    ))}
+                  </datalist>
                 </div>
-                <datalist id="subuser-list">
-                  {subUsers.map(u => (
-                    <option key={u.id} value={u.email}>{u.name}</option>
-                  ))}
-                </datalist>
-              </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Status</label>

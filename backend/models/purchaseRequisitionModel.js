@@ -14,8 +14,8 @@ const PurchaseRequisition = {
         business_id, pr_number, pr_date, requester, item_services, 
         qty, uom, unit_price, total_amount, currency, items, comments, attachment, 
         status, po_number, approvers, created_by,
-        level1_email, level2_email, level3_email
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        level1_email, level2_email, level3_email, approver_sequence
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -38,7 +38,8 @@ const PurchaseRequisition = {
       data.created_by,
       data.level1_email,
       data.level2_email,
-      data.level3_email
+      data.level3_email,
+      sanitizeValue(data.approver_sequence)
     ];
 
     const [result] = await pool.execute(query, values);
@@ -83,7 +84,7 @@ const PurchaseRequisition = {
       'qty', 'uom', 'unit_price', 'total_amount', 'currency', 'items', 'comments', 
       'attachment', 'status', 'po_number', 'approvers', 'action_by_name', 
       'action_by_email', 'action_at', 'approved_by',
-      'level1_email', 'level2_email', 'level3_email'
+      'level1_email', 'level2_email', 'level3_email', 'approver_sequence'
     ];
 
     updateableFields.forEach(field => {

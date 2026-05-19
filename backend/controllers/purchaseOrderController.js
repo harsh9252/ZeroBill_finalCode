@@ -1,4 +1,5 @@
 const PurchaseOrder = require('../models/purchaseOrderModel');
+const ApprovalWorkflow = require('../models/approvalWorkflowModel');
 const Business = require('../models/businessModel');
 const { validationResult } = require('express-validator');
 const { sendEmail } = require('../utils/nodemailerService');
@@ -9,11 +10,16 @@ const notifyApprovers = async (poData, targetEmail = null) => {
 
   if (!emailToNotify) {
     // Determine who to notify based on sequential logic
-    const levels = [
-      poData.level1_email ? poData.level1_email.toLowerCase().trim() : null,
-      poData.level2_email ? poData.level2_email.toLowerCase().trim() : null,
-      poData.level3_email ? poData.level3_email.toLowerCase().trim() : null
-    ].filter(e => e);
+    let levels = [];
+    if (poData.approver_sequence) {
+      levels = poData.approver_sequence.split(',').map(e => e.trim().toLowerCase()).filter(e => e);
+    } else {
+      levels = [
+        poData.level1_email ? poData.level1_email.toLowerCase().trim() : null,
+        poData.level2_email ? poData.level2_email.toLowerCase().trim() : null,
+        poData.level3_email ? poData.level3_email.toLowerCase().trim() : null
+      ].filter(e => e);
+    }
 
     const approvedBy = poData.approved_by ? poData.approved_by.split(',').map(e => e.trim().toLowerCase()) : [];
     
@@ -147,11 +153,16 @@ exports.publicAction = async (req, res) => {
       detailMessage = `Purchase Order <strong>${po.purchase_order_number}</strong> has been rejected by <strong>${email}</strong>.`;
     } else {
       // Sequential Logic for Multi-Approval
-      const levels = [
-        po.level1_email ? po.level1_email.toLowerCase().trim() : null,
-        po.level2_email ? po.level2_email.toLowerCase().trim() : null,
-        po.level3_email ? po.level3_email.toLowerCase().trim() : null
-      ].filter(e => e);
+      let levels = [];
+      if (po.approver_sequence) {
+        levels = po.approver_sequence.split(',').map(e => e.trim().toLowerCase()).filter(e => e);
+      } else {
+        levels = [
+          po.level1_email ? po.level1_email.toLowerCase().trim() : null,
+          po.level2_email ? po.level2_email.toLowerCase().trim() : null,
+          po.level3_email ? po.level3_email.toLowerCase().trim() : null
+        ].filter(e => e);
+      }
       
       let currentApprovedBy = po.approved_by ? po.approved_by.split(',').map(e => e.trim().toLowerCase()) : [];
       const approverEmail = email.toLowerCase().trim();
@@ -279,6 +290,21 @@ exports.createPurchaseOrder = async (req, res) => {
 
     const businessId = await getBusinessId(req);
 
+    // Fetch dynamic approval workflow
+    const workflowLevels = await ApprovalWorkflow.getWorkflow(businessId, 'purchase_order');
+    let approverSequence = null;
+    let lvl1 = req.body.level1_email;
+    let lvl2 = req.body.level2_email;
+    let lvl3 = req.body.level3_email;
+
+    if (workflowLevels && workflowLevels.length > 0) {
+      const emails = workflowLevels.map(l => l.approver_email.trim().toLowerCase());
+      approverSequence = emails.join(',');
+      lvl1 = emails[0] || null;
+      lvl2 = emails[1] || null;
+      lvl3 = emails[2] || null;
+    }
+
     const orderData = {
       business_id: businessId,
       purchase_order_number: req.body.purchase_order_number || null,
@@ -298,17 +324,16 @@ exports.createPurchaseOrder = async (req, res) => {
       bank_id: req.body.bank_id,
       po_agreement_number: req.body.po_agreement_number,
       remark: req.body.remark,
-      level1_email: req.body.level1_email,
-      level2_email: req.body.level2_email,
-      level3_email: req.body.level3_email
+      level1_email: lvl1,
+      level2_email: lvl2,
+      level3_email: lvl3,
+      approver_sequence: approverSequence
     };
 
-    // If approval email is provided, default status to pending
-    if (orderData.level1_email) {
+    // If approval sequence or level1 email is provided, default status to pending
+    if (orderData.level1_email || orderData.approver_sequence) {
       orderData.status = 'pending';
     }
-
-
 
     const orderId = await PurchaseOrder.create(orderData);
 
@@ -320,7 +345,7 @@ exports.createPurchaseOrder = async (req, res) => {
     const createdOrder = await PurchaseOrder.findById(orderId, businessId);
 
     // Trigger notification if workflow exists
-    if (createdOrder && createdOrder.level1_email) {
+    if (createdOrder && (createdOrder.level1_email || createdOrder.approver_sequence)) {
       await notifyApprovers(createdOrder);
     }
 
@@ -428,8 +453,38 @@ exports.updatePurchaseOrder = async (req, res) => {
         code: 'INVALID_ID'
       });
     }
+
+    const currentPO = await PurchaseOrder.findById(id, businessId);
+    if (!currentPO) {
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase order not found'
+      });
+    }
+
     const orderData = req.body;
 
+    // Load dynamic approval workflow if status is pending and we want to refresh/apply it
+    let approverSequence = orderData.approver_sequence || currentPO.approver_sequence;
+    let lvl1 = orderData.level1_email !== undefined ? orderData.level1_email : currentPO.level1_email;
+    let lvl2 = orderData.level2_email !== undefined ? orderData.level2_email : currentPO.level2_email;
+    let lvl3 = orderData.level3_email !== undefined ? orderData.level3_email : currentPO.level3_email;
+
+    if ((!approverSequence || approverSequence === '') && (!lvl1 || lvl1 === '') && currentPO.status === 'pending') {
+      const workflowLevels = await ApprovalWorkflow.getWorkflow(businessId, 'purchase_order');
+      if (workflowLevels && workflowLevels.length > 0) {
+        const emails = workflowLevels.map(l => l.approver_email.trim().toLowerCase());
+        approverSequence = emails.join(',');
+        lvl1 = emails[0] || null;
+        lvl2 = emails[1] || null;
+        lvl3 = emails[2] || null;
+      }
+    }
+
+    orderData.approver_sequence = approverSequence;
+    orderData.level1_email = lvl1;
+    orderData.level2_email = lvl2;
+    orderData.level3_email = lvl3;
 
     const updated = await PurchaseOrder.update(id, businessId, orderData);
 
@@ -449,7 +504,7 @@ exports.updatePurchaseOrder = async (req, res) => {
     const updatedOrder = await PurchaseOrder.findById(id, businessId);
 
     // If it's still pending and has level emails, trigger notification (in case it was updated)
-    if (updatedOrder && updatedOrder.status === 'pending' && updatedOrder.level1_email && !updatedOrder.approved_by) {
+    if (updatedOrder && updatedOrder.status === 'pending' && (updatedOrder.level1_email || updatedOrder.approver_sequence) && !updatedOrder.approved_by) {
       await notifyApprovers(updatedOrder);
     }
 

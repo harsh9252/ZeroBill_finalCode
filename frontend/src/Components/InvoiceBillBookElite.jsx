@@ -50,6 +50,7 @@ import { websiteUrl } from '../config/appConfig';
 import Account from "../Screen/Admin/Setting/Account";
 import BusinessManagement from "../Screen/Admin/Setting/BusinessManagement";
 import VoucherSetting from "../Screen/Admin/Setting/VoucherSetting";
+import ApprovalWorkflowSetting from "../Screen/Admin/Setting/ApprovalWorkflowSetting";
 import Support from "../Screen/Admin/Support/Support";
 
 import { COUNTRY_OPTIONS } from "../utils/dropdownOptions";
@@ -710,6 +711,7 @@ export default function InvoiceBillBookElite({ onLogout }) {
     "/support": { title: "Support Center", subtitle: "Get Help and Support", key: "support" },
     "/manageUser": { title: "Manage Users", subtitle: "Manage Your Users", key: "manageUser" },
     "/voucher-settings": { title: "Voucher Settings", subtitle: "Customize document numbering", key: "voucherSettings" },
+    "/approval-workflow": { title: "Approval Workflow", subtitle: "Configure dynamic levels", key: "approvalWorkflow" },
     "/Agreement": { title: "Agreement", subtitle: "Manage Supplier / Buyer Agreements", key: "Agreement" },
     "/zKhataBook": { title: "Z Khata Book", subtitle: "Manage Your Khata Book", key: "zKhataBook" },
     "/ledger": { title: "Ledger", subtitle: "Manage Your Ledger", key: "ledger" },
@@ -815,6 +817,7 @@ export default function InvoiceBillBookElite({ onLogout }) {
                   <Route path="/account" element={<Account currency={currency} isPlanExpired={isPlanExpired} checkPlanExpiry={checkPlanExpiry} />} />
                   <Route path="/business" element={<BusinessManagement currency={currency} isPlanExpired={isPlanExpired} checkPlanExpiry={checkPlanExpiry} />} />
                   <Route path="/voucher-settings" element={<VoucherSetting />} />
+                  <Route path="/approval-workflow" element={<ApprovalWorkflowSetting />} />
                   <Route path="/support" element={<Support currency={currency} checkBusiness={checkBusiness} />} />
                   <Route path="/manageUser" element={
                     (() => {

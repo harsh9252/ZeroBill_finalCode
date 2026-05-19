@@ -1,3 +1,4 @@
+
 const fs = require('fs');
 const path = require('path');
 const { pool } = require('../config/database');
@@ -10,6 +11,24 @@ const sanitize = (name, forceLower = false) => {
     // but replace other potentially dangerous characters
     let sanitized = name.replace(/[^a-zA-Z0-9.\- ]/g, '_'); 
     return forceLower ? sanitized.toLowerCase() : sanitized;
+};
+
+// Helper: Calculate total directory size recursively
+const getDirSize = (dirPath) => {
+    let size = 0;
+    if (fs.existsSync(dirPath)) {
+        const files = fs.readdirSync(dirPath);
+        for (let i = 0; i < files.length; i++) {
+            const filePath = path.join(dirPath, files[i]);
+            const stats = fs.statSync(filePath);
+            if (stats.isDirectory()) {
+                size += getDirSize(filePath);
+            } else {
+                size += stats.size;
+            }
+        }
+    }
+    return size;
 };
 
 // ─── Helper: Record a document item in DB ───────────────────────────────────
@@ -441,6 +460,27 @@ exports.uploadFile = async (req, res) => {
         const businessId = parseInt(req.body.businessId);
         const parentPath = req.body.parentPath || '';
         const subUserId = req.user.isSubUser ? req.user.id : null;
+
+        // Check total storage limit (1 GB)
+        if (businessId) {
+            const [businessRows] = await pool.query('SELECT business_name FROM businesses WHERE id = ?', [businessId]);
+            if (businessRows.length > 0) {
+                const businessName = sanitizeFolderName(businessRows[0].business_name, true);
+                const ownerEmail = req.user.ownerEmail || req.user.email;
+                const businessPath = path.join(__dirname, '../uploads', ownerEmail, businessName);
+                
+                const MAX_STORAGE_BYTES = 1024 * 1024 * 1024; // 1 GB
+                const currentSize = getDirSize(businessPath);
+                
+                if (currentSize > MAX_STORAGE_BYTES) {
+                    // Remove the uploaded file as it exceeds the quota
+                    if (fs.existsSync(req.file.path)) {
+                        fs.unlinkSync(req.file.path);
+                    }
+                    return res.status(400).json({ success: false, message: 'Storage Limit Exceeded: You have used your 1 GB plan limit.' });
+                }
+            }
+        }
 
         // ── Sub-user business access check ──────────────────────────────────
         if (req.user.isSubUser && businessId) {

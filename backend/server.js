@@ -47,6 +47,7 @@ const grnRoutes = require('./routes/grnRoutes');
 const mrnRoutes = require('./routes/mrnRoutes');
 const purchaseRequisitionRoutes = require('./routes/purchaseRequisitionRoutes');
 const salesLeadRoutes = require('./routes/salesLeadRoutes');
+const approvalWorkflowRoutes = require('./routes/approvalWorkflowRoutes');
 const upload = require('./middleware/uploadMiddleware');
 
 // Load environment variables
@@ -224,6 +225,7 @@ app.use(['/api/grn', '/grn'], grnRoutes);
 app.use(['/api/mrn', '/mrn'], mrnRoutes);
 app.use(['/api/purchase-requisitions', '/purchase-requisitions'], purchaseRequisitionRoutes);
 app.use(['/api/sales-leads', '/sales-leads'], salesLeadRoutes);
+app.use(['/api/approval-workflows', '/approval-workflows'], approvalWorkflowRoutes);
 
 // Health check
 app.get(['/api/health', '/health'], (req, res) => {
@@ -248,7 +250,16 @@ app.get(['/api/health', '/health'], (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ success: false, message: 'Something went wrong!' });
+  
+  if (err.code === 'ENOSPC') {
+    return res.status(507).json({ success: false, message: 'Contact to admin your storage is full now' });
+  }
+  
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ success: false, message: 'File is too large to upload' });
+  }
+
+  res.status(500).json({ success: false, message: err.message || 'Something went wrong!' });
 });
 
 const PORT = process.env.PORT || 5000;

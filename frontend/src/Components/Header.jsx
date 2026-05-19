@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ProfileSidebar from "./ProfileSidebar";
 import CommonDropdown from "./CustomDropdown";
 import LanguageCurrencySettings from "./LanguageCurrencySettings";
-import { Settings2 } from "lucide-react";
+import { Settings2, Building2 } from "lucide-react";
 
 export default function Header({
   currentPage,
@@ -16,6 +16,36 @@ export default function Header({
   onToggle,
   onLogout
 }) {
+  const [businessName, setBusinessName] = useState(() => localStorage.getItem('currentBusinessName') || "");
+
+  useEffect(() => {
+    const handleBusinessUpdate = (e) => {
+      if (e.detail && e.detail.businessName) {
+        setBusinessName(e.detail.businessName);
+      } else {
+        const storedName = localStorage.getItem('currentBusinessName');
+        if (storedName) setBusinessName(storedName);
+      }
+    };
+
+    window.addEventListener('businessLogoUpdated', handleBusinessUpdate);
+    window.addEventListener('businessChanged', handleBusinessUpdate); // Just in case
+    
+    // Sync across tabs
+    const handleStorageChange = (e) => {
+      if (e.key === 'currentBusinessName') {
+        setBusinessName(e.newValue || "");
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('businessLogoUpdated', handleBusinessUpdate);
+      window.removeEventListener('businessChanged', handleBusinessUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   const selectedBusinessId = localStorage.getItem('selectedBusinessId');
 
   return (
@@ -35,15 +65,23 @@ export default function Header({
         </div>
 
         {/* SECOND ROW: LANGUAGE AND CURRENCY SIDE BY SIDE */}
-        <div className="flex items-center gap-2 relative notranslate">
-          <LanguageCurrencySettings
-            selectedLanguage={selectedLanguage}
-            handleLanguageChange={handleLanguageChange}
-            currency={currency}
-            handleCurrencyChange={handleCurrencyChange}
-            currencyOptions={currencyOptions}
-            languageOptions={languageOptions}
-          />
+        <div className="flex items-center justify-between mt-2 gap-2 relative notranslate">
+          {businessName && (
+            <div className="flex items-center gap-1.5 h-9 px-2.5 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg shadow-sm">
+              <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="text-xs font-semibold break-words">{businessName}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 relative notranslate ml-auto">
+            <LanguageCurrencySettings
+              selectedLanguage={selectedLanguage}
+              handleLanguageChange={handleLanguageChange}
+              currency={currency}
+              handleCurrencyChange={handleCurrencyChange}
+              currencyOptions={currencyOptions}
+              languageOptions={languageOptions}
+            />
+          </div>
         </div>
       </div>
 
@@ -73,6 +111,13 @@ export default function Header({
 
         {/* RIGHT SECTION */}
         <div className="flex items-center gap-3 relative notranslate flex-wrap md:flex-nowrap justify-end">
+          
+          {businessName && (
+            <div className="flex items-center gap-2 h-10 px-3 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200/60 rounded-lg shadow-sm text-yellow-800 transition-all hover:shadow-md hover:border-yellow-300">
+              <Building2 className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+              <span className="text-sm font-semibold tracking-wide break-words">{businessName}</span>
+            </div>
+          )}
 
           <LanguageCurrencySettings
             selectedLanguage={selectedLanguage}

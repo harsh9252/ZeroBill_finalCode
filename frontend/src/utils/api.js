@@ -45,18 +45,13 @@ export const clearAuthData = () => {
 export const apiRequest = async (endpoint, options = {}) => {
   const token = getAuthToken();
 
-  const headers = {
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
-
-  if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
-  }
-
   const config = {
     ...options,
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
   };
 
   try {
@@ -932,23 +927,9 @@ export const zKhataAPI = {
 
   // Transactions
   addTransaction: async (transactionData) => {
-    let body;
-    if (transactionData && transactionData.screenshot) {
-      const formData = new FormData();
-      Object.keys(transactionData).forEach(key => {
-        if (key === 'screenshot') {
-          formData.append('screenshot', transactionData.screenshot);
-        } else if (transactionData[key] !== undefined && transactionData[key] !== null) {
-          formData.append(key, transactionData[key]);
-        }
-      });
-      body = formData;
-    } else {
-      body = JSON.stringify(transactionData);
-    }
     return apiRequest('/z-khata/transactions', {
       method: 'POST',
-      body,
+      body: JSON.stringify(transactionData),
     });
   },
 
@@ -972,23 +953,9 @@ export const zKhataAPI = {
   },
 
   updateTransaction: async (id, transactionData) => {
-    let body;
-    if (transactionData && transactionData.screenshot) {
-      const formData = new FormData();
-      Object.keys(transactionData).forEach(key => {
-        if (key === 'screenshot') {
-          formData.append('screenshot', transactionData.screenshot);
-        } else if (transactionData[key] !== undefined && transactionData[key] !== null) {
-          formData.append(key, transactionData[key]);
-        }
-      });
-      body = formData;
-    } else {
-      body = JSON.stringify(transactionData);
-    }
     return apiRequest(`/z-khata/transactions/${id}`, {
       method: 'PUT',
-      body,
+      body: JSON.stringify(transactionData),
     });
   },
 
@@ -2539,8 +2506,21 @@ export const purchaseRequisitionAPI = {
   },
 };
 
-
-
+export const approvalWorkflowAPI = {
+  getWorkflow: async (documentType, businessId = null) => {
+    let endpoint = `/approval-workflows?document_type=${documentType}`;
+    if (businessId) {
+      endpoint += `&business_id=${businessId}`;
+    }
+    return apiRequest(endpoint, { method: 'GET' });
+  },
+  saveWorkflow: async (workflowData) => {
+    return apiRequest('/approval-workflows', {
+      method: 'POST',
+      body: JSON.stringify(workflowData)
+    });
+  }
+};
 
 export default {
   apiRequest,
@@ -2576,6 +2556,7 @@ export default {
   documentAPI,
   customQuotationAPI,
   purchaseRequisitionAPI,
+  approvalWorkflowAPI,
   getAuthToken,
   getUserData,
   clearAuthData,

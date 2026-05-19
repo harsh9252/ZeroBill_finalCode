@@ -192,6 +192,12 @@
       "label": "Voucher Setting",
       "icon": "Settings2",
       "path": "voucher-settings"
+    },
+    {
+      "key": "approvalWorkflow",
+      "label": "Approval Workflow",
+      "icon": "GitFork",
+      "path": "approval-workflow"
     }
   ],
   "footerItems": [
