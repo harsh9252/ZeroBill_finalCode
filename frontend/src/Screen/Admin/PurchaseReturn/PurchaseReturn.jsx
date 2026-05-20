@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { convertFileToImage } from '../../../utils/fileConverter';
 import ReactDOM from 'react-dom/client';
 import { Plus, FileText, ArrowLeft, Download } from "lucide-react";
+import TemplateSidebar from "../../../Components/TemplateSidebar.jsx";
 import "sweetalert2/dist/sweetalert2.min.css";
 import { formatDate } from "../../../utils/dateFormat.js";
 
@@ -767,21 +768,33 @@ function PurchaseReturn({ currency }) {
   // Preview page render
   if (viewMode === 'preview' && previewPurchaseReturn) {
     return (
-      <div className="min-h-screen bg-gray-50 w-full">
+      <div className="min-h-screen bg-gray-50 w-full flex flex-col">
         <PurchaseReturnPreviewHeader />
-        <div className="pt-36 p-6 bg-white w-full min-h-screen">
-          <div className="w-full max-w-7xl mx-auto">
-            {previewData ? (() => {
-              const SelectedFormat = pdfFormats[selectedFormat].component;
-              return <SelectedFormat data={previewData} />;
-            })() : (
-              <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-2xl border-gray-200 mt-20">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
-                  <p className="text-gray-500 font-medium">Preparing document preview...</p>
+        <div className="flex flex-1 pt-16">
+          <TemplateSidebar
+            documents={rows}
+            selectedDocument={previewPurchaseReturn}
+            onSelect={(doc) => {
+              setPreviewPurchaseReturn(doc);
+            }}
+            title="Purchase Return"
+            documentType="purchaseReturn"
+            currency={currency}
+          />
+          <div className="flex-1 overflow-y-auto pt-4 p-6 bg-white min-h-[calc(100vh-4rem)]">
+            <div className="w-full max-w-7xl mx-auto">
+              {previewData ? (() => {
+                const SelectedFormat = pdfFormats[selectedFormat].component;
+                return <SelectedFormat data={previewData} />;
+              })() : (
+                <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-2xl border-gray-200 mt-20">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
+                    <p className="text-gray-500 font-medium">Preparing document preview...</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

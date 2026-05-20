@@ -535,8 +535,23 @@ const PurchaseRequisitionForm = ({ prId, onClose, onRefresh, currency }) => {
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      setAttachments(prev => [...prev, ...files]);
+    const totalCount = existingAttachments.length + attachments.length + files.length;
+    if (totalCount > 5) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Attachment Limit Exceeded',
+        text: 'You can upload a maximum of 5 attachments per Purchase Requisition.',
+        confirmButtonColor: '#2563EB'
+      });
+      // Add only files up to the limit of 5
+      const allowedCount = 5 - (existingAttachments.length + attachments.length);
+      if (allowedCount > 0) {
+        setAttachments(prev => [...prev, ...files.slice(0, allowedCount)]);
+      }
+    } else {
+      if (files.length > 0) {
+        setAttachments(prev => [...prev, ...files]);
+      }
     }
     // Reset input
     e.target.value = '';
@@ -574,6 +589,17 @@ const PurchaseRequisitionForm = ({ prId, onClose, onRefresh, currency }) => {
 
     if (formData.status === 'completed' && !formData.po_number) {
       Swal.fire('Warning', 'PO Number is required for completed PR', 'warning');
+      return;
+    }
+
+    const totalAttachmentsCount = existingAttachments.length + attachments.length;
+    if (totalAttachmentsCount > 5) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Attachment Limit Exceeded',
+        text: 'You can upload a maximum of 5 attachments per Purchase Requisition.',
+        confirmButtonColor: '#2563EB'
+      });
       return;
     }
 

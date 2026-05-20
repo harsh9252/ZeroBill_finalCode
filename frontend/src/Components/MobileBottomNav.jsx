@@ -23,7 +23,10 @@ import {
   BarChart,
   Building,  // <-- add for Manage Business
   Plus,   // <-- add
-  X       // <-- add
+  X,       // <-- add
+  TrendingUp,
+  Settings2,
+  GitFork
 } from 'lucide-react';
 
 import sidebarConfig from "../Jsonfiles/sidebarjson.json";
@@ -53,7 +56,10 @@ const ICON_MAP = {
   BarChart,
   Building, // <-- add for Manage Business
   Plus, // <-- add
-  X     // <-- add
+  X,     // <-- add
+  TrendingUp,
+  Settings2,
+  GitFork
 };
 
 
@@ -110,7 +116,7 @@ export default function MobileBottomNav({ onNavigate, currentPage, isPlanExpired
 
   const mainItems = useMemo(
     () => {
-      const taxType = localStorage.getItem('currentTaxType') || 'No';
+      const taxType = (localStorage.getItem('currentTaxType') || 'No').toUpperCase().trim();
       return (sidebarConfig.items || [])
         .filter(it => {
           if (it.key === 'eInvoice' && taxType !== 'GST') return false;

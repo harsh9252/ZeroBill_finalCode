@@ -49,7 +49,8 @@ const UserModal = ({
     setShowAddModal,
     businessOptions,
     handleBusinessSelect,
-    formErrors = {}
+    formErrors = {},
+    activeTaxType = 'No'
 }) => {
     const [showPassword, setShowPassword] = useState(false);
 
@@ -124,7 +125,7 @@ const UserModal = ({
                                     checked={(() => {
                                         const p = formData.permissions;
                                         const currentArr = Array.isArray(p) ? p : (typeof p === 'string' ? (JSON.parse(p || '[]')) : []);
-                                        const taxType = localStorage.getItem('currentTaxType') || 'No';
+                                        const taxType = activeTaxType;
                                         const visibleModules = MODULES.filter(m => {
                                             if (m.key === 'eInvoice' && taxType !== 'GST') return false;
                                             return true;
@@ -133,7 +134,7 @@ const UserModal = ({
                                     })()}
                                     onChange={(e) => {
                                         const isChecked = e.target.checked;
-                                        const taxType = localStorage.getItem('currentTaxType') || 'No';
+                                        const taxType = activeTaxType;
                                         const visibleModules = MODULES.filter(m => {
                                             if (m.key === 'eInvoice' && taxType !== 'GST') return false;
                                             return true;
@@ -152,7 +153,7 @@ const UserModal = ({
                                 {(() => {
                                     const p = formData.permissions;
                                     const currentArr = Array.isArray(p) ? p : [];
-                                    const taxType = localStorage.getItem('currentTaxType') || 'No';
+                                    const taxType = activeTaxType;
                                     const visibleModules = MODULES.filter(m => {
                                         if (m.key === 'eInvoice' && taxType !== 'GST') return false;
                                         return true;
@@ -163,7 +164,7 @@ const UserModal = ({
                         </div>
                         <div className={`grid grid-cols-2 gap-2 p-3 border-2 rounded-lg bg-white/50 transition-all ${formErrors.permissions ? 'border-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.1)]' : 'border-gray-100'}`}>
                             {MODULES.filter(m => {
-                                const taxType = localStorage.getItem('currentTaxType') || 'No';
+                                const taxType = activeTaxType;
                                 if (m.key === 'eInvoice' && taxType !== 'GST') return false;
                                 return true;
                             }).map((module) => (
@@ -867,6 +868,12 @@ const ManageUser = ({ isPlanExpired, checkPlanExpiry }) => {
                         businessOptions={businessOptions}
                         handleBusinessSelect={handleBusinessSelect}
                         formErrors={formErrors}
+                        activeTaxType={(() => {
+                            const activeBusinessId = localStorage.getItem('selectedBusinessId');
+                            const activeBusiness = businesses.find(b => (b.id || b._id)?.toString() === activeBusinessId?.toString());
+                            const rawType = activeBusiness ? (activeBusiness.vat_number ? 'VAT' : (activeBusiness.gstin ? 'GST' : 'No')) : (localStorage.getItem('currentTaxType') || 'No');
+                            return (rawType || 'No').toUpperCase().trim();
+                        })()}
                     />
                 )
             }

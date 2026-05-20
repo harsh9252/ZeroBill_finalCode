@@ -28,7 +28,7 @@ export default function AddLedgerEntryModel({ isOpen, onClose, onSave, parties =
                     custom_voucher_type: isCustomType ? editData.type : '',
                     voucher_number: editData.number || '',
                     reference_no: editData.reference_no || '',
-                    notes: editData.particulars || editData.notes || '',
+                    notes: editData.notes || '',
                     base_amount: convertFromINR(editData.base_amount || editData.debit || editData.credit || 0, currency).toFixed(2),
                     gst_percent: editData.gst_percent || '0'
                 });

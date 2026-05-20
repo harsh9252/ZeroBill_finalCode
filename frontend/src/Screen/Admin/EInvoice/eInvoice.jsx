@@ -7,6 +7,7 @@ import {
   AlertCircle, Settings, ChevronDown, ChevronUp, Loader2,
   FileSearch, QrCode, Hash, ArrowLeft, Zap, Download, Truck
 } from "lucide-react";
+import TemplateSidebar from "../../../Components/TemplateSidebar.jsx";
 import api from '../../../utils/api';
 import CommonDropdown from "../../../Components/CustomDropdown.jsx";
 import CustomPreviewDropdown from "../../../Components/CustomPreviewDropdown.jsx";
@@ -722,23 +723,35 @@ const Dashboard = ({ onBack, currency = 'INR', language = 'en-IN', sidebarCollap
 
   if (viewMode === 'preview' && previewInvoice) {
     return (
-      <div className="min-h-screen bg-gray-50 w-full mb-10 pb-10">
+      <div className="min-h-screen bg-gray-50 w-full mb-10 pb-10 flex flex-col">
         <EInvoicePreviewHeader />
-        <div className="pt-24 p-6 bg-white w-full min-h-screen font-sans">
-          <div className="w-full max-w-7xl mx-auto">
-            {previewData ? (
-              (() => {
-                const SelectedFormat = pdfFormats[selectedFormat]?.component;
-                return SelectedFormat ? <SelectedFormat data={previewData} /> : null;
-              })()
-            ) : (
-              <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-2xl border-gray-200 mt-20">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
-                  <p className="text-gray-500 font-medium">Preparing document preview...</p>
+        <div className="flex flex-1 pt-16">
+          <TemplateSidebar
+            documents={filteredInvoices}
+            selectedDocument={previewInvoice}
+            onSelect={(doc) => {
+              handleRowClick(doc);
+            }}
+            title="e-Invoice"
+            documentType="sales"
+            currency={currency}
+          />
+          <div className="flex-1 overflow-y-auto pt-4 p-6 bg-white min-h-[calc(100vh-4rem)]">
+            <div className="w-full max-w-7xl mx-auto">
+              {previewData ? (
+                (() => {
+                  const SelectedFormat = pdfFormats[selectedFormat]?.component;
+                  return SelectedFormat ? <SelectedFormat data={previewData} /> : null;
+                })()
+              ) : (
+                <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-2xl border-gray-200 mt-20">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
+                    <p className="text-gray-500 font-medium">Preparing document preview...</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

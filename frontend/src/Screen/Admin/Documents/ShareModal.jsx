@@ -204,17 +204,24 @@ const ShareModal = ({ isOpen, onClose, businessId, item, onUpdate }) => {
                             </button>
                             <button
                               onClick={() => handleUpdatePermission(u.id, { can_view: 1, can_edit: 1, can_delete: 0 })}
-                              className={`p-1.5 rounded-md transition-all ${u.can_edit && !u.can_delete ? 'bg-[#129046] text-white shadow-md' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
+                              className={`p-1.5 rounded-md transition-all ${u.can_view && u.can_edit && !u.can_delete ? 'bg-[#129046] text-white shadow-md' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
                               title="Editor"
                             >
                               <Edit3 size={16} />
                             </button>
                             <button
-                              onClick={() => handleUpdatePermission(u.id, { can_view: 1, can_edit: 1, can_delete: 1 })}
-                              className={`p-1.5 rounded-md transition-all ${u.can_delete ? 'bg-[#129046] text-white shadow-md' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
-                              title="Moderator"
+                              onClick={() => handleUpdatePermission(u.id, { can_view: 1, can_edit: 0, can_delete: 1 })}
+                              className={`p-1.5 rounded-md transition-all ${u.can_view && !u.can_edit && u.can_delete ? 'bg-[#129046] text-white shadow-md' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
+                              title="Delete Only"
                             >
                               <Trash2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleUpdatePermission(u.id, { can_view: 1, can_edit: 1, can_delete: 1 })}
+                              className={`p-1.5 rounded-md transition-all ${u.can_view && u.can_edit && u.can_delete ? 'bg-[#129046] text-white shadow-md' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
+                              title="Moderator"
+                            >
+                              <Shield size={16} />
                             </button>
                             <div className="w-[1px] h-4 bg-gray-200 mx-1 self-center" />
                             <button

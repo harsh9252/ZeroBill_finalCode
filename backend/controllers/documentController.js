@@ -315,6 +315,24 @@ exports.getDocuments = async (req, res) => {
             };
         }
 
+        // Fetch child specific permissions to avoid parent folder permission overrides
+        let specificPermissionsMap = {};
+        if (req.user.isSubUser) {
+            const [permRows] = await pool.query(
+                `SELECT di.item_name, dp.can_view, dp.can_edit, dp.can_delete 
+                 FROM document_permissions dp
+                 INNER JOIN document_items di ON dp.document_item_id = di.id
+                 WHERE di.business_id = ? AND di.parent_path = ? AND dp.sub_user_id = ?`,
+                [parseInt(businessId), relativePath || '', req.user.id]
+            );
+            permRows.forEach(row => {
+                specificPermissionsMap[row.item_name] = {
+                    canEdit: !!row.can_edit,
+                    canDelete: !!row.can_delete
+                };
+            });
+        }
+
         const result = items
             .filter(item => {
                 // Sub-user filter: only items tracked in DB as theirs
@@ -353,15 +371,27 @@ exports.getDocuments = async (req, res) => {
                 let itemPermissions = { canEdit: true, canDelete: true, canShare: true };
                 if (req.user.isSubUser) {
                     const isOwner = adminOwnershipMap ? (adminOwnershipMap[item.name] === req.user.id) : false;
-                    // If they own it, full access.
-                    // If they don't own it, it depends on inherited or specific perms.
-                    // For now, we'll use a conservative approach: if they don't own it and 
-                    // the folder is not editable, they can't edit it.
-                    itemPermissions = {
-                        canEdit: isOwner || folderPermissions.canEdit,
-                        canDelete: isOwner || folderPermissions.canDelete,
-                        canShare: isOwner
-                    };
+                    const specific = specificPermissionsMap[item.name];
+                    
+                    if (isOwner) {
+                        itemPermissions = {
+                            canEdit: true,
+                            canDelete: true,
+                            canShare: true
+                        };
+                    } else if (specific) {
+                        itemPermissions = {
+                            canEdit: specific.canEdit,
+                            canDelete: specific.canDelete,
+                            canShare: false
+                        };
+                    } else {
+                        itemPermissions = {
+                            canEdit: folderPermissions.canEdit,
+                            canDelete: folderPermissions.canDelete,
+                            canShare: false
+                        };
+                    }
                 }
 
                 return {

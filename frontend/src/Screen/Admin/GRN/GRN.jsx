@@ -5,6 +5,7 @@ import jsPDF from "jspdf";
 import { FileText, Import, Plus } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReusableTable from '../../../Components/ReusableTable.jsx';
+import TemplateSidebar from "../../../Components/TemplateSidebar.jsx";
 import Date_wise_Filter_Button, { getRangeBoundsPure } from '../../../Components/Date_wise_Filter_Button.jsx';
 import GRNForm from './GRNCreateForm.jsx';
 import CommonDropdown from '../../../Components/CustomDropdown.jsx';
@@ -248,7 +249,7 @@ export default function GRN({ currency, checkBusiness }) {
       }
     };
 
-    if (viewMode === 'list') {
+    if (viewMode === 'list' || viewMode === 'preview') {
       loadGRNs();
     }
   }, [viewMode, currentBusinessId]);
@@ -312,7 +313,9 @@ export default function GRN({ currency, checkBusiness }) {
       closeModal();
 
       if (response.success) {
-        showSuccessToast(`GRN ${response.data?.grn_number || ''} saved successfully`);
+        const grnNum = response.data?.grn_number || '';
+        const successMsg = grnNum.toUpperCase().startsWith('GRN') ? `${grnNum} saved successfully` : `GRN ${grnNum} saved successfully`;
+        showSuccessToast(successMsg);
         setViewMode('list');
         localStorage.removeItem('grnViewMode');
         navigate('/GRN');
@@ -347,7 +350,6 @@ export default function GRN({ currency, checkBusiness }) {
       price: ln.price || 0,
       hsn: ln.hsn || '',
       discountPct: ln.discountPct || 0,
-      pack_size: ln.pack_size || '',
     }));
 
 
@@ -521,15 +523,32 @@ export default function GRN({ currency, checkBusiness }) {
   ];
 
   if (viewMode === 'preview' && previewData) {
+    const selectedGRNRow = rows.find(r => r.id === previewData.grn_number);
     return (
-      <GrnmrnPDFFormat
-        previewData={previewData}
-        onBack={() => {
-          setPreviewData(null);
-          setViewMode('list');
-          navigate('/GRN');
-        }}
-      />
+      <div className="min-h-screen bg-[#D5DCD5] w-full flex flex-col pt-16">
+        <div className="flex flex-1">
+          <TemplateSidebar
+            documents={rows}
+            selectedDocument={selectedGRNRow}
+            onSelect={(doc) => {
+              setPreviewData(mapToGRNData(doc));
+            }}
+            title="Goods Receipt"
+            documentType="grn"
+            currency={currency}
+          />
+          <div className="flex-1 overflow-y-auto">
+            <GrnmrnPDFFormat
+              previewData={previewData}
+              onBack={() => {
+                setPreviewData(null);
+                setViewMode('list');
+                navigate('/GRN');
+              }}
+            />
+          </div>
+        </div>
+      </div>
     );
   }
 

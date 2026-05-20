@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { convertFileToImage } from '../../../utils/fileConverter';
+import TemplateSidebar from '../../../Components/TemplateSidebar.jsx';
+
 const calculateDueDate = (date, days = 30) => {
   if (!date) return null;
 
@@ -382,7 +384,7 @@ export default function Quotation({ currency, checkBusiness }) {
       }
     };
 
-    if (viewMode === 'list') {
+    if (viewMode === 'list' || viewMode === 'preview') {
       loadQuotations();
     }
   }, [viewMode]);
@@ -1465,22 +1467,34 @@ export default function Quotation({ currency, checkBusiness }) {
 
   if (viewMode === 'preview' && previewQuotation) {
     return (
-      <div className="min-h-screen bg-gray-50 w-full relative">
+      <div className="min-h-screen bg-gray-50 w-full relative flex flex-col">
         <QuotationPreviewHeader />
-        <div className="preview-wrapper pt-16 pb-12 p-6 bg-white w-full min-h-screen">
-          <div className="max-w-7xl mx-auto">
-            {previewData ? (() => {
-              const formatObj = pdfFormats[selectedFormat] || pdfFormats['FormatOne'] || Object.values(pdfFormats)[0];
-              const SelectedFormat = formatObj.component;
-              return <SelectedFormat data={previewData} />;
-            })() : (
-              <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-2xl border-2 border-dashed border-gray-200">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
-                  <p className="text-gray-500 font-medium">Preparing document preview...</p>
+        <div className="flex flex-1 pt-16">
+          <TemplateSidebar
+            documents={rows}
+            selectedDocument={previewQuotation}
+            onSelect={(doc) => {
+              setPreviewQuotation(doc);
+            }}
+            title="Quotation"
+            documentType="quotation"
+            currency={currency}
+          />
+          <div className="flex-1 overflow-y-auto pt-4 pb-12 p-6 bg-white min-h-[calc(100vh-4rem)]">
+            <div className="max-w-7xl mx-auto">
+              {previewData ? (() => {
+                const formatObj = pdfFormats[selectedFormat] || pdfFormats['FormatOne'] || Object.values(pdfFormats)[0];
+                const SelectedFormat = formatObj.component;
+                return <SelectedFormat data={previewData} />;
+              })() : (
+                <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-2xl border-2 border-dashed border-gray-200">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
+                    <p className="text-gray-500 font-medium">Preparing document preview...</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
         {modals}

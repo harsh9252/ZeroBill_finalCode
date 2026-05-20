@@ -927,10 +927,51 @@ export const zKhataAPI = {
 
   // Transactions
   addTransaction: async (transactionData) => {
-    return apiRequest('/z-khata/transactions', {
-      method: 'POST',
-      body: JSON.stringify(transactionData),
+    const token = getAuthToken();
+    const formData = new FormData();
+    
+    Object.keys(transactionData).forEach(key => {
+      if (transactionData[key] !== null && transactionData[key] !== undefined) {
+        if (key === 'screenshot') {
+          if (transactionData[key]) {
+            formData.append('screenshot', transactionData[key]);
+          }
+        } else {
+          formData.append(key, transactionData[key]);
+        }
+      }
     });
+
+    const config = {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    };
+
+    try {
+      const response = await fetch(`${baseURL}/z-khata/transactions`, config);
+      
+      if (response.status === 401) {
+        console.warn('Token expired or invalid. Clearing auth data and redirecting to login.');
+        clearAuthData();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/#/login';
+          window.location.reload();
+        }
+        throw new Error('Unauthorized');
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to add transaction');
+      }
+      return data;
+    } catch (error) {
+      console.error('Add Transaction API Error:', error);
+      throw error;
+    }
   },
 
   getTransactionsForParty: async (partyId, businessId) => {
@@ -953,10 +994,51 @@ export const zKhataAPI = {
   },
 
   updateTransaction: async (id, transactionData) => {
-    return apiRequest(`/z-khata/transactions/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(transactionData),
+    const token = getAuthToken();
+    const formData = new FormData();
+    
+    Object.keys(transactionData).forEach(key => {
+      if (transactionData[key] !== null && transactionData[key] !== undefined) {
+        if (key === 'screenshot') {
+          if (transactionData[key]) {
+            formData.append('screenshot', transactionData[key]);
+          }
+        } else {
+          formData.append(key, transactionData[key]);
+        }
+      }
     });
+
+    const config = {
+      method: 'PUT',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    };
+
+    try {
+      const response = await fetch(`${baseURL}/z-khata/transactions/${id}`, config);
+
+      if (response.status === 401) {
+        console.warn('Token expired or invalid. Clearing auth data and redirecting to login.');
+        clearAuthData();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/#/login';
+          window.location.reload();
+        }
+        throw new Error('Unauthorized');
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update transaction');
+      }
+      return data;
+    } catch (error) {
+      console.error('Update Transaction API Error:', error);
+      throw error;
+    }
   },
 
   deleteTransaction: async (id, businessId) => {

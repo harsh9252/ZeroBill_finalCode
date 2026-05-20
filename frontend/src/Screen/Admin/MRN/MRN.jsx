@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { FileText, Plus } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReusableTable from '../../../Components/ReusableTable.jsx';
+import TemplateSidebar from "../../../Components/TemplateSidebar.jsx";
 import Date_wise_Filter_Button, { getRangeBoundsPure } from '../../../Components/Date_wise_Filter_Button.jsx';
 import MRNForm from './MRNCreateForm.jsx';
 import CommonDropdown from '../../../Components/CustomDropdown.jsx';
@@ -235,7 +236,7 @@ export default function MRN({ currency, checkBusiness }) {
       }
     };
 
-    if (viewMode === 'list') {
+    if (viewMode === 'list' || viewMode === 'preview') {
       loadMRNs();
     }
   }, [viewMode, currentBusinessId]);
@@ -299,7 +300,9 @@ export default function MRN({ currency, checkBusiness }) {
       closeModal();
 
       if (response.success) {
-        showSuccessToast(`MRN ${response.data?.mrn_number || ''} saved successfully`);
+        const mrnNum = response.data?.mrn_number || '';
+        const successMsg = mrnNum.toUpperCase().startsWith('MRN') ? `${mrnNum} saved successfully` : `MRN ${mrnNum} saved successfully`;
+        showSuccessToast(successMsg);
         setViewMode('list');
         localStorage.removeItem('mrnViewMode');
         navigate('/MRN');
@@ -332,7 +335,6 @@ export default function MRN({ currency, checkBusiness }) {
       price: ln.price || 0,
       hsn: ln.hsn || '',
       discountPct: ln.discountPct || 0,
-      pack_size: ln.pack_size || '',
     }));
 
 
@@ -502,15 +504,32 @@ export default function MRN({ currency, checkBusiness }) {
   ];
 
   if (viewMode === 'preview' && previewData) {
+    const selectedMRNRow = rows.find(r => r.id === previewData.mrn_number);
     return (
-      <GrnmrnPDFFormat
-        previewData={previewData}
-        onBack={() => {
-          setPreviewData(null);
-          setViewMode('list');
-          navigate('/MRN');
-        }}
-      />
+      <div className="min-h-screen bg-[#D5DCD5] w-full flex flex-col pt-16">
+        <div className="flex flex-1">
+          <TemplateSidebar
+            documents={rows}
+            selectedDocument={selectedMRNRow}
+            onSelect={(doc) => {
+              setPreviewData(mapToGRNData(doc));
+            }}
+            title="Material Receipt"
+            documentType="mrn"
+            currency={currency}
+          />
+          <div className="flex-1 overflow-y-auto">
+            <GrnmrnPDFFormat
+              previewData={previewData}
+              onBack={() => {
+                setPreviewData(null);
+                setViewMode('list');
+                navigate('/MRN');
+              }}
+            />
+          </div>
+        </div>
+      </div>
     );
   }
 

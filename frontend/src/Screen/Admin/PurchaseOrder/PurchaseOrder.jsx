@@ -3,6 +3,7 @@ import { convertFileToImage } from '../../../utils/fileConverter';
 import ReactDOM from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import { ChevronDown, FileText, Plus, Edit2, Trash2, ArrowLeft, Download, Search, ClipboardList, X, Check } from 'lucide-react';
+import TemplateSidebar from "../../../Components/TemplateSidebar.jsx";
 import { FaFileInvoice } from 'react-icons/fa';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDate } from '../../../utils/dateFormat.js';
@@ -657,8 +658,21 @@ function BookInvoiceModal({ open, poData, onClose, onSuccess, currency }) {
       const userId = user?.id || user?.userId || 1;
       const { bookInvoiceAPI } = api;
 
-      const today = new Date();
-      const invoiceDateStr = today.toISOString().split('T')[0];
+      // Find the first valid invoice date entered by the user
+      let invoiceDateStr = '';
+      for (const item of items) {
+        const firstValidInv = item.supplierInvoices.find(inv => inv.invoiceDate && (parseFloat(inv.receivedQty) > 0 || inv.invoiceNo.trim()));
+        if (firstValidInv && firstValidInv.invoiceDate) {
+          invoiceDateStr = firstValidInv.invoiceDate;
+          break;
+        }
+      }
+
+      // Fallback to today if no date was selected/entered
+      if (!invoiceDateStr) {
+        const today = new Date();
+        invoiceDateStr = today.toISOString().split('T')[0];
+      }
 
       // 🔍 Fetch the correct sequential Book Invoice Number (e.g. BI-2026-27-0001)
       let bookInvoiceNumber = `BI-${Date.now()}`; // Fallback timestamp
@@ -1777,7 +1791,7 @@ export default function PurchaseOrder({ currency }) {
       }
     };
 
-    if (viewMode === 'list') {
+    if (viewMode === 'list' || viewMode === 'preview') {
       loadOrders();
     }
   }, [viewMode, refreshKey]);
@@ -2153,22 +2167,34 @@ export default function PurchaseOrder({ currency }) {
   // Preview page render
   if (viewMode === 'preview' && previewPurchaseOrder) {
     return (
-      <div className="min-h-screen bg-gray-50 w-full">
+      <div className="min-h-screen bg-gray-50 w-full flex flex-col">
         <PurchaseOrderPreviewHeader />
-        <div className="preview-wrapper pt-16 p-6 bg-white w-full min-h-screen">
-          <div className="w-full max-w-7xl mx-auto">
-            {previewData ? (() => {
-              const formatObj = pdfFormats[selectedFormat] || pdfFormats['FormatOne'] || Object.values(pdfFormats)[0];
-              const SelectedFormat = formatObj.component;
-              return <SelectedFormat data={previewData} />;
-            })() : (
-              <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-2xl border-gray-200 mt-20">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
-                  <p className="text-gray-500 font-medium">Preparing document preview...</p>
+        <div className="flex flex-1 pt-16">
+          <TemplateSidebar
+            documents={rows}
+            selectedDocument={previewPurchaseOrder}
+            onSelect={(doc) => {
+              setPreviewPurchaseOrder(doc);
+            }}
+            title="Purchase Order"
+            documentType="purchaseOrder"
+            currency={currency}
+          />
+          <div className="flex-1 overflow-y-auto pt-4 p-6 bg-white min-h-[calc(100vh-4rem)]">
+            <div className="w-full max-w-7xl mx-auto">
+              {previewData ? (() => {
+                const formatObj = pdfFormats[selectedFormat] || pdfFormats['FormatOne'] || Object.values(pdfFormats)[0];
+                const SelectedFormat = formatObj.component;
+                return <SelectedFormat data={previewData} />;
+              })() : (
+                <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-sm rounded-2xl border-gray-200 mt-20">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
+                    <p className="text-gray-500 font-medium">Preparing document preview...</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

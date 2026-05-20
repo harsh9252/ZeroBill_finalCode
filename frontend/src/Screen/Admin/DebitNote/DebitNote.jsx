@@ -3,6 +3,7 @@ import { convertFileToImage } from '../../../utils/fileConverter';
 import { useSearchParams, useNavigate } from "react-router-dom";
 import ReactDOM from 'react-dom/client';
 import { Plus, FileText, ArrowLeft, Download } from "lucide-react";
+import TemplateSidebar from "../../../Components/TemplateSidebar.jsx";
 import "sweetalert2/dist/sweetalert2.min.css";
 import { formatDate, toISODate } from "../../../utils/dateFormat.js";
 
@@ -739,18 +740,30 @@ function DebitNote({ currency }) {
     // Preview page render
     if (viewMode === 'preview' && previewDebitNote) {
         return (
-            <div className="min-h-screen bg-gray-50 w-full">
+            <div className="min-h-screen bg-gray-50 w-full flex flex-col">
                 <DebitNotePreviewHeader />
-                <div className="preview-wrapper pt-16 p-6 bg-white w-full min-h-screen">
-                    <div className="w-full max-w-7xl mx-auto">
-                        {previewData ? (() => {
-                            const SelectedFormat = pdfFormats[selectedFormat].component;
-                            return <SelectedFormat data={previewData} />;
-                        })() : (
-                            <div className="flex items-center justify-center py-12">
-                                <div className="text-gray-500">Loading preview...</div>
-                            </div>
-                        )}
+                <div className="flex flex-1 pt-16">
+                    <TemplateSidebar
+                        documents={rows}
+                        selectedDocument={previewDebitNote}
+                        onSelect={(doc) => {
+                            setPreviewDebitNote(doc);
+                        }}
+                        title="Debit Note"
+                        documentType="debitNote"
+                        currency={currency}
+                    />
+                    <div className="flex-1 overflow-y-auto pt-4 p-6 bg-white min-h-[calc(100vh-4rem)]">
+                        <div className="w-full max-w-7xl mx-auto">
+                            {previewData ? (() => {
+                                const SelectedFormat = pdfFormats[selectedFormat].component;
+                                return <SelectedFormat data={previewData} />;
+                            })() : (
+                                <div className="flex items-center justify-center py-12">
+                                    <div className="text-gray-500">Loading preview...</div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

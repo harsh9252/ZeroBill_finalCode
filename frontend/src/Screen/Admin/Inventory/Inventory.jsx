@@ -2,7 +2,9 @@
 // Full updated single-file component (Create/Edit modal, detail view, table, SweetAlert helpers)
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import { Search, Plus, Upload, X, ChevronDown, ArrowLeft, FileBarChart2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Search, Plus, Upload, X, ChevronDown, ArrowLeft, FileBarChart2, ChevronRight, ChevronLeft, Download } from "lucide-react";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import ActionButtons from "../../../Components/ActionButtons.jsx";
 import ReusableTable from "../../../Components/ReusableTable.jsx";
 import CommonDropdown from "../../../Components/CustomDropdown.jsx";
@@ -13,8 +15,9 @@ import { showSuccessToast, showErrorToast, showInfoToast, SuccessMessages, Error
 import { getBackendURL, getApiURL, getImageURL } from '../../../utils/config.js';
 import { formatCurrency, convertAmount, getCurrencySymbol, convertToINR, convertFromINR } from '../../../utils/currency.js';
 import MainLoader from "../../../Components/MainLoader.jsx";
-import { categoryAPI } from "../../../utils/api.js";
+import { categoryAPI, businessAPI } from "../../../utils/api.js";
 import DeleteConfirmationModal from "../../../Components/DeleteConfirmationModal.jsx";
+
 
 /* ---------------- Internal helpers to satisfy Fast Refresh ---------------- */
 const alertInfo = (text, title = "Info") => {
@@ -2087,7 +2090,7 @@ function ItemDetailView({
                           key={tab.id}
                           onClick={() => setActiveTab(tab.id)}
                           className={`-mb-[2px] px-4 py-1.5 flex items-center justify-center ${activeTab === tab.id
-                            ? "text-green-700 font-medium bg-yellow-100"
+                            ? "text-green-700 font-medium bg-yellow-100 border-b-2 border-green-600"
                             : "text-gray-500 hover:text-gray-700"
                             }`}
                         >
@@ -2628,6 +2631,7 @@ const mapItem = (item, selectedCurrency = "INR") => ({
 export default function Inventory({ currency = "USD", checkBusiness }) {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedType, setSelectedType] = useState(""); // "" (All Types), "product", "service"
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchName, setSearchName] = useState("");
@@ -2661,6 +2665,187 @@ export default function Inventory({ currency = "USD", checkBusiness }) {
     return formatCurrency(v, currency);
   };
 
+  const handleExportExcel = async () => {
+    if (products.length === 0) {
+      toastError("No inventory items to export");
+      return;
+    }
+
+    try {
+      // Get business details
+      const selectedBusinessId = localStorage.getItem('selectedBusinessId');
+      let businessDetails = null;
+      if (selectedBusinessId) {
+        try {
+          const res = await businessAPI.getById(selectedBusinessId);
+          if (res.success) {
+            businessDetails = res.data;
+          }
+        } catch (e) {
+          console.error("Error fetching business info for export:", e);
+        }
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Inventory Report');
+
+      // Colors & Styling
+      const PRIMARY_GREEN = '129046';
+      const LIGHT_GREEN = 'E8F5E9';
+      const TEXT_WHITE = 'FFFFFF';
+      const BORDER_COLOR = 'E0E0E0';
+
+      // 1. Title Row
+      const titleRow = worksheet.addRow(['INVENTORY REPORT']);
+      titleRow.font = { name: 'Arial Black', size: 16, color: { argb: PRIMARY_GREEN } };
+      worksheet.mergeCells('A1:R1');
+      titleRow.alignment = { horizontal: 'center' };
+
+      worksheet.addRow([]); // Spacer
+
+      // 2. Business Details
+      const infoStartRow = 3;
+      worksheet.getCell(`A${infoStartRow}`).value = 'BUSINESS DETAILS';
+      worksheet.getCell(`A${infoStartRow}`).font = { bold: true, color: { argb: PRIMARY_GREEN } };
+
+      worksheet.getCell(`A${infoStartRow + 1}`).value = businessDetails?.business_name || localStorage.getItem('currentBusinessName') || 'My Business';
+      worksheet.getCell(`A${infoStartRow + 2}`).value = businessDetails?.email || '';
+      worksheet.getCell(`A${infoStartRow + 3}`).value = businessDetails?.phone_number || '';
+
+      worksheet.getCell(`E${infoStartRow}`).value = 'REPORT DETAILS';
+      worksheet.getCell(`E${infoStartRow}`).font = { bold: true, color: { argb: PRIMARY_GREEN } };
+      worksheet.getCell(`E${infoStartRow + 1}`).value = `Total Items: ${products.length}`;
+      worksheet.getCell(`E${infoStartRow + 2}`).value = `Generated: ${new Date().toLocaleDateString()}`;
+
+      worksheet.addRow([]); // Spacer
+      worksheet.addRow([]); // Spacer
+
+      // 3. Headers
+      const headers = [
+        'S.No',
+        'Item Code',
+        'Item Name',
+        'Type',
+        'Category',
+        'Stock Qty',
+        'Measuring Unit',
+        'Purchase Price',
+        'Purchase Tax Type',
+        'Sale Price',
+        'Sale Tax Type',
+        'HSN/SAC Code',
+        'GST Rate (%)',
+        'Low Stock Qty',
+        'Alternative Unit',
+        'Conversion Rate',
+        'As of Date',
+        'Description'
+      ];
+
+      const headerRow = worksheet.addRow(headers);
+
+      headerRow.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: PRIMARY_GREEN }
+        };
+        cell.font = { bold: true, color: { argb: TEXT_WHITE } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      // Add Auto-filters to columns in Excel sheet
+      worksheet.autoFilter = {
+        from: {
+          row: 9,
+          column: 1
+        },
+        to: {
+          row: 9,
+          column: headers.length
+        }
+      };
+
+      // 4. Data Rows
+      products.forEach((p, idx) => {
+        const row = worksheet.addRow([
+          idx + 1,
+          p.code || '-',
+          p.name || '-',
+          p.type === 'service' ? 'Service' : 'Product',
+          p.category || '-',
+          p.type === 'service' ? '-' : (p.qty || 0),
+          p.type === 'service' ? '-' : (p.unit || 'PCS'),
+          p.type === 'service' ? '-' : (p.purchasePrice || 0),
+          p.type === 'service' ? '-' : (p.purchasePriceTaxType === 'with_tax' ? 'Incl. Tax' : 'Excl. Tax'),
+          p.salePrice || 0,
+          p.salePriceTaxType === 'with_tax' ? 'Incl. Tax' : 'Excl. Tax',
+          p.hsn || '-',
+          p.gstRate !== null && p.gstRate !== undefined ? `${p.gstRate}%` : '0%',
+          p.type === 'service' ? '-' : (p.lowStockQty || '-'),
+          p.type === 'service' ? '-' : (p.altUnit || '-'),
+          p.type === 'service' ? '-' : (p.altConvRate || '-'),
+          p.asOfDate || '-',
+          p.description || '-'
+        ]);
+
+        const isAlt = idx % 2 === 1;
+        row.eachCell((cell, colNumber) => {
+          if (isAlt) {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'F9F9F9' }
+            };
+          }
+          cell.border = {
+            top: { style: 'thin', color: { argb: BORDER_COLOR } },
+            left: { style: 'thin', color: { argb: BORDER_COLOR } },
+            bottom: { style: 'thin', color: { argb: BORDER_COLOR } },
+            right: { style: 'thin', color: { argb: BORDER_COLOR } }
+          };
+
+          // Alignment & formatting for numeric values
+          if (colNumber === 6) { // Stock Qty
+            cell.alignment = { horizontal: 'right' };
+            if (p.type !== 'service') cell.numFmt = '#,##0';
+          } else if (colNumber === 8 || colNumber === 10) { // Purchase & Sale Prices
+            cell.alignment = { horizontal: 'right' };
+            if (cell.value !== '-') cell.numFmt = '#,##0.00';
+          } else {
+            cell.alignment = { horizontal: 'left' };
+          }
+        });
+      });
+
+      // Adjust column widths
+      worksheet.columns.forEach((column) => {
+        let maxLen = 0;
+        column.eachCell({ includeEmpty: true }, (cell) => {
+          const val = cell.value ? String(cell.value) : '';
+          if (val.length > maxLen) maxLen = val.length;
+        });
+        column.width = Math.max(maxLen + 4, 12);
+      });
+
+      // Save File
+      const buffer = await workbook.xlsx.writeBuffer();
+      const filename = `Inventory_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      saveAs(new Blob([buffer]), filename);
+      toastSuccess("Inventory report exported successfully!");
+    } catch (error) {
+      console.error("Error exporting inventory:", error);
+      toastError("Failed to export inventory: " + error.message);
+    }
+  };
+
+
   // Fetch business type
   useEffect(() => {
     const savedBusinessType = localStorage.getItem('currentBusinessType');
@@ -2693,7 +2878,7 @@ export default function Inventory({ currency = "USD", checkBusiness }) {
       const mapped = itemsData.map(item => mapItem(item, currency));
       setProducts(mapped);
       // Only update total count when no filters are active
-      if (!currentFilters.low_stock_only && !currentFilters.search && !currentFilters.category_id) {
+      if (!currentFilters.low_stock_only && !currentFilters.search && !currentFilters.category_id && !currentFilters.item_type) {
         setTotalProductCount(mapped.length);
       }
     } catch (err) {
@@ -2709,27 +2894,26 @@ export default function Inventory({ currency = "USD", checkBusiness }) {
     loadInventoryData({
       category_id: selectedCategory,
       search: searchName,
-      low_stock_only: showLowOnly
+      low_stock_only: showLowOnly,
+      item_type: selectedType
     });
   }, []);
 
   // Fetch items when filters change
   useEffect(() => {
     const loadFilteredItems = async () => {
-      // Don't fetch if loading is already true from another effect
-      // But we need to make sure we don't skip the VERY FIRST filter-triggered load if initial load is still in progress
-
       try {
         const filters = {};
         if (selectedCategory) filters.category_id = selectedCategory;
         if (searchName.trim()) filters.search = searchName.trim();
         if (showLowOnly) filters.low_stock_only = true;
+        if (selectedType) filters.item_type = selectedType;
 
         const itemsData = await fetchInventoryItems(filters);
         const mapped = itemsData.map(item => mapItem(item, currency));
         setProducts(mapped);
         // Update total count when no filters active
-        if (!filters.low_stock_only && !filters.search && !filters.category_id) {
+        if (!filters.low_stock_only && !filters.search && !filters.category_id && !filters.item_type) {
           setTotalProductCount(mapped.length);
         }
       } catch (err) {
@@ -2738,10 +2922,8 @@ export default function Inventory({ currency = "USD", checkBusiness }) {
       }
     };
 
-    // Skip if it is the very first render (handled by initial load)
-    // but subsequent filter changes should trigger this
     loadFilteredItems();
-  }, [selectedCategory, searchName, showLowOnly, currency]);
+  }, [selectedCategory, searchName, showLowOnly, selectedType, currency]);
 
   // Listen for business changes and refetch inventory
   useEffect(() => {
@@ -2750,7 +2932,8 @@ export default function Inventory({ currency = "USD", checkBusiness }) {
       loadInventoryData({
         category_id: selectedCategory,
         search: searchName,
-        low_stock_only: showLowOnly
+        low_stock_only: showLowOnly,
+        item_type: selectedType
       });
     };
 
@@ -2759,7 +2942,7 @@ export default function Inventory({ currency = "USD", checkBusiness }) {
     return () => {
       window.removeEventListener('businessChanged', handleBusinessChanged);
     };
-  }, []);
+  }, [selectedCategory, searchName, showLowOnly, selectedType]);
 
   const filteredProducts = products.filter((p) => {
     // Since we're now fetching filtered data from API, we just return all products
@@ -2949,11 +3132,32 @@ export default function Inventory({ currency = "USD", checkBusiness }) {
                         />
                       </div>
 
+                      <div className="w-full sm:w-auto">
+                        <select
+                          value={selectedType}
+                          onChange={(e) => setSelectedType(e.target.value)}
+                          className="h-8 px-3 border-1 border-gray-300 rounded-lg text-sm focus:border-[#129046] focus:ring-1 focus:ring-[#129046]/10 outline-none bg-white text-gray-700 cursor-pointer transition-all font-semibold"
+                        >
+                          <option value="">All Types</option>
+                          <option value="product">Products</option>
+                          <option value="service">Services</option>
+                        </select>
+                      </div>
+
                       <button
                         onClick={() => setShowLowOnly((v) => !v)}
                         className={`flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-sm transition-all ${showLowOnly ? "bg-red-500 text-white shadow-lg" : "bg-yellow-500 text-white"}`}
                       >
                         {showLowOnly ? "Show All" : "Low Stock"}
+                      </button>
+
+                      <button
+                        onClick={handleExportExcel}
+                        className="flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-sm bg-[#129046] hover:bg-[#129046]/90 text-white transition-all font-semibold shadow-sm"
+                        title="Export to Excel"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Export</span>
                       </button>
 
                       <div className="hidden md:block">
@@ -2971,7 +3175,7 @@ export default function Inventory({ currency = "USD", checkBusiness }) {
             </div>
 
             {/* Show content only when products ever existed (even if current filter shows 0) */}
-            {(totalProductCount > 0 || showLowOnly || searchName || selectedCategory) && (
+            {(totalProductCount > 0 || showLowOnly || searchName || selectedCategory || selectedType) && (
               <>
                 {/* Mobile Cards View - Only show if there are filtered results */}
                 {filteredProducts.length > 0 && (

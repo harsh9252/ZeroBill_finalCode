@@ -378,7 +378,7 @@ const PRPdfFormat = ({ previewData, onBack }) => {
                     {pageIdx === 0 && (
                       <div style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
+                        gridTemplateColumns: status.toLowerCase() === 'completed' ? "1fr 1fr 1fr" : "1fr 1fr",
                         gap: "1px",
                         background: "#E5E7EB",
                         border: "1px solid #E5E7EB",
@@ -388,9 +388,13 @@ const PRPdfFormat = ({ previewData, onBack }) => {
                         <Field icon={<Hash size={11} />} label="PR Number" value={prNumber} />
                         <Field icon={<Calendar size={11} />} label="Date" value={date} />
                         <Field icon={<User size={11} />} label="Requested By" value={requester} />
-                        <Field icon={<Tag size={11} />} label="PO Number" value={poNumber} />
                         <Field icon={<CheckCircle size={11} />} label="Status" value={status} badge />
-                        <Field icon={<User size={11} />} label="Approver(s)" value={approvers} />
+                        {status.toLowerCase() === 'completed' && (
+                          <>
+                            <Field icon={<Tag size={11} />} label="PO Number" value={poNumber} />
+                            <Field icon={<User size={11} />} label="Approver(s)" value={approvers} />
+                          </>
+                        )}
                       </div>
                     )}
 
@@ -420,6 +424,28 @@ const PRPdfFormat = ({ previewData, onBack }) => {
                       </table>
                     </div>
 
+
+                    {isLastPage && comments && (
+                      <div style={{
+                        border: "1px solid #E5E7EB",
+                        borderRadius: "9px",
+                        padding: "10px 14px",
+                        background: "white",
+                        flexShrink: 0,
+                        marginTop: "10px",
+                        textAlign: "left"
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "6px" }}>
+                          <MessageSquare size={11} color={B} />
+                          <span style={{ fontSize: "9px", fontWeight: "700", color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                            Remarks / Comments
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#374151", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>
+                          {comments}
+                        </div>
+                      </div>
+                    )}
 
                     {isLastPage && <div style={{ flex: 1 }} />}
                     {isLastPage && <SignatureBlock />}

@@ -96,7 +96,7 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                 subtotal: convertToINR(txData.base_amount || txData.amount, currency),
                 tax_amount: convertToINR(txData.amount - (txData.base_amount || txData.amount), currency),
                 line_items: [], // Required by some APIs
-                created_by: 1 // Default
+                created_by: api.getUserData()?.id || api.getUserData()?.userId || 1 // Dynamic user ID
             };
 
             const isUpdate = !!editEntryData;
@@ -476,7 +476,8 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                     type: 'Tax Invoice',
                     number: item.invoice_number || item.id,
                     debit: parseFloat(item.grand_total || 0),
-                    credit: 0
+                    credit: 0,
+                    notes: item.notes || ''
                 })),
             ...rawTransactions.paymentsIn
                 .filter(item => item.party_id === selectedParty.id || item.party_name === selectedParty.party_name)
@@ -490,7 +491,8 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                         number: item.payment_number || item.id,
                         debit: 0,
                         credit: parseFloat(item.amount_received || 0),
-                        description: item.notes || ''
+                        description: item.notes || '',
+                        notes: item.notes || ''
                     };
                 }),
             ...rawTransactions.creditNotes
@@ -503,7 +505,8 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                     number: item.note_number || item.id,
                     debit: 0,
                     credit: parseFloat(item.grand_total || 0),
-                    description: item.notes || ''
+                    description: item.notes || '',
+                    notes: item.notes || ''
                 })),
             ...rawTransactions.paymentsOut
                 .filter(item => item.party_id === selectedParty.id || item.party_name === selectedParty.party_name)
@@ -517,7 +520,8 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                         number: item.payment_number || item.id,
                         debit: parseFloat(item.amount_received || item.amount_paid || item.amount || 0),
                         credit: 0,
-                        description: item.notes || ''
+                        description: item.notes || '',
+                        notes: item.notes || ''
                     };
                 }),
             ...rawTransactions.debitNotes
@@ -529,7 +533,8 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                     type: 'Dr Note',
                     number: item.debit_note_number || item.note_number || item.id,
                     debit: parseFloat(item.grand_total || 0),
-                    credit: 0
+                    credit: 0,
+                    notes: item.notes || ''
                 })),
             ...rawTransactions.salesReturns
                 .filter(item => item.party_id === selectedParty.id || item.party_name === selectedParty.party_name)
@@ -540,7 +545,8 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                     type: 'Sales Return',
                     number: item.return_number || item.id,
                     debit: 0,
-                    credit: parseFloat(item.grand_total || 0)
+                    credit: parseFloat(item.grand_total || 0),
+                    notes: item.notes || ''
                 })),
             ...rawTransactions.bookInvoices
                 .filter(item => item.party_id === selectedParty.id || item.party_name === selectedParty.party_name)
@@ -551,7 +557,8 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                     type: 'Book Invoice',
                     number: item.book_invoice_number || item.invoice_number || item.id,
                     debit: 0,
-                    credit: parseFloat(item.grand_total || 0)
+                    credit: parseFloat(item.grand_total || 0),
+                    notes: item.notes || ''
                 })),
             ...rawTransactions.purchaseReturns
                 .filter(item => item.party_id === selectedParty.id || item.party_name === selectedParty.party_name)
@@ -562,7 +569,8 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                     type: 'Purchase Return',
                     number: item.purchase_return_number || item.return_number || item.id,
                     debit: parseFloat(item.grand_total || 0),
-                    credit: 0
+                    credit: 0,
+                    notes: item.notes || ''
                 }))
         ];
 
@@ -670,9 +678,9 @@ export default function Ledger({ currency = 'INR', language = 'en-IN' }) {
                                 <button
                                     key={party.id}
                                     onClick={() => setSelectedParty(party)}
-                                    className={`w-full text-left px-4 py-2.5 transition-all hover:bg-white flex items-center justify-between group border-l-4 ${selectedParty?.id === party.id
-                                        ? 'bg-white border-l-[#129046] shadow-sm'
-                                        : 'bg-transparent border-l-[#129046]/60 hover:bg-green-50/10'
+                                    className={`w-full text-left px-4 py-2.5 transition-all hover:bg-white flex items-center justify-between group ${selectedParty?.id === party.id
+                                        ? 'bg-white shadow-sm'
+                                        : 'bg-transparent hover:bg-green-50/10'
                                         }`}
                                 >
                                     <div className="flex-1 min-w-0">

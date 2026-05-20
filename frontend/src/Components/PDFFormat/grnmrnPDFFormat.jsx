@@ -335,7 +335,7 @@ const GrnMrnPDFFormat = ({ previewData, onBack }) => {
     <div style={{ minHeight: "100vh", background: "#D5DCD5", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
 
       {/* Toolbar */}
-      <div className="fixed top-16 left-60 right-0 z-40 bg-white border-b border-gray-200 px-6 py-3">
+      <div className="sticky top-0 z-40 bg-white border-b border-gray-200 px-6 py-3 no-print">
         <div className="flex items-center justify-between w-full max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
@@ -354,7 +354,7 @@ const GrnMrnPDFFormat = ({ previewData, onBack }) => {
       </div>
 
       {/* Print Content */}
-      <div style={{ paddingTop: "88px", paddingBottom: "60px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ paddingTop: "24px", paddingBottom: "60px", display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div ref={printRef} className="print-root" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
 
           {pages.map((pg, pageIdx) => {

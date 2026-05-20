@@ -711,7 +711,7 @@ export default function CustomQuotationForm({
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">
-                            Contact / Email
+                            Contact / Email <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"

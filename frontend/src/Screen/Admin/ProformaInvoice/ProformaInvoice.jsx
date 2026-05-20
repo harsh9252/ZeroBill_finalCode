@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { convertFileToImage } from '../../../utils/fileConverter';
+import TemplateSidebar from '../../../Components/TemplateSidebar.jsx';
 const calculateDueDate = (date, days = 30) => {
   if (!date) return null;
 
@@ -1309,22 +1310,32 @@ export default function ProformaInvoice({ currency }) {
 
   if (viewMode === 'preview' && previewQuotation) {
     return (
-      <div className="min-h-screen bg-gray-50 w-full">
+      <div className="min-h-screen bg-gray-50 w-full flex flex-col">
         {/* Fixed Header - Always visible at top */}
         <ProformaPreviewHeader />
-
-        {/* PDF Preview Content - Full Width Centered with top padding for fixed header */}
-        <div className="preview-wrapper pt-16 p-6 bg-white w-full min-h-screen">
-          <div className="w-full max-w-7xl mx-auto">
-            {previewData ? (() => {
-              const formatObj = pdfFormats[selectedFormat] || pdfFormats['FormatOne'] || Object.values(pdfFormats)[0];
-              const SelectedFormat = formatObj.component;
-              return <SelectedFormat data={previewData} />;
-            })() : (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-gray-500">Loading preview...</div>
-              </div>
-            )}
+        <div className="flex flex-1 pt-16">
+          <TemplateSidebar
+            documents={rows}
+            selectedDocument={previewQuotation}
+            onSelect={(doc) => {
+              setPreviewQuotation(doc);
+            }}
+            title="Proforma Invoice"
+            documentType="proforma"
+            currency={currency}
+          />
+          <div className="flex-1 overflow-y-auto pt-4 p-6 bg-white min-h-[calc(100vh-4rem)]">
+            <div className="w-full max-w-7xl mx-auto">
+              {previewData ? (() => {
+                const formatObj = pdfFormats[selectedFormat] || pdfFormats['FormatOne'] || Object.values(pdfFormats)[0];
+                const SelectedFormat = formatObj.component;
+                return <SelectedFormat data={previewData} />;
+              })() : (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-gray-500">Loading preview...</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {modals}

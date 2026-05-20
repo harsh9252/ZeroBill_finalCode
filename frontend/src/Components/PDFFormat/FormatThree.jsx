@@ -295,11 +295,18 @@ async function buildPDF(data) {
 
   const busName = (data.company?.name || "BUSINESS NAME").toUpperCase();
   const addrText = data.company?.addressLines || "";
-  const addrLines = doc.splitTextToSize(addrText, 80);
 
-  // Dynamic header height
+  const maxBusNameWidth = logoB64 ? 100 : 160;
 
-  const headerH = Math.max(30, 15 + (addrLines.length * 4.2) + 5);
+  // Set font properties before splitting to ensure accurate width calculations
+  sf("bold", 12.5);
+  const busNameLines = doc.splitTextToSize(busName, maxBusNameWidth);
+
+  sf("normal", 8);
+  const addrLines = doc.splitTextToSize(addrText, maxBusNameWidth);
+
+  // Dynamic header height based on both business name lines and address lines
+  const headerH = Math.max(30, (busNameLines.length * 5) + (addrLines.length * 4.2) + 12);
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.1);
   doc.rect(ML, y, MW, headerH);
@@ -315,7 +322,11 @@ async function buildPDF(data) {
   }
 
   sf("bold", 12.5);
-  doc.text(busName, PW / 2, y + 8, { align: "center" });
+  let bny = y + 8;
+  busNameLines.forEach(l => {
+    doc.text(l, PW / 2, bny, { align: "center" });
+    bny += 5;
+  });
 
   sf("normal", 8);
   let ay = y + headerH - (addrLines.length * 4.2) - 2; // Position towards bottom
@@ -451,6 +462,13 @@ async function buildPDF(data) {
       [DOCUMENT_TYPES.PURCHASE_ORDER]: "Order",
       [DOCUMENT_TYPES.DELIVERY_CHALLAN]: "Challan",
       [DOCUMENT_TYPES.PROFORMA]: "Proforma",
+      [DOCUMENT_TYPES.CREDIT_NOTE]: "Credit Note",
+      [DOCUMENT_TYPES.DEBIT_NOTE]: "Debit Note",
+      [DOCUMENT_TYPES.SALES_RETURN]: "Sales Return",
+      [DOCUMENT_TYPES.PURCHASE_RETURN]: "Purchase Return",
+      [DOCUMENT_TYPES.PURCHASE_INVOICE]: "Book Purchase Order",
+      [DOCUMENT_TYPES.BOOK_INVOICE]: "Book Invoice",
+      [DOCUMENT_TYPES.EINVOICE]: "E-Invoice",
     };
     return map[type] || "Document";
   };
@@ -593,6 +611,16 @@ async function buildPDF(data) {
   const compState = (data.company?.state || "").toLowerCase().trim();
   const custState = (data.shipping?.state || data.customer?.state || "").toLowerCase().trim();
 
+  // Check if any product has tax applied
+  const hasTax = data.products.some(p => 
+    (p.tax || 0) > 0 || 
+    (p.cgstPct || 0) > 0 || 
+    (p.sgstPct || 0) > 0 || 
+    (p.igstPct || 0) > 0 || 
+    (p.vatPct || 0) > 0 ||
+    (p.gstPct || 0) > 0
+  );
+
   // Primary Check: If data has both CGST and SGST values, we MUST split it.
   const hasSplitValues = data.products.some(p => p.cgstPct > 0 && p.sgstPct > 0);
 
@@ -601,46 +629,49 @@ async function buildPDF(data) {
   let showVAT = false;
   let showSingleGST = false;
 
-  if (hasSplitValues) {
-    showCGST_SGST = true;
-  } else if (compCountry === "india" && custCountry === "india") {
-    if (compState !== custState && custState !== "") {
-      showIGST = true;
+  if (hasTax) {
+    if (hasSplitValues) {
+      showCGST_SGST = true;
+    } else if (compCountry === "india" && custCountry === "india") {
+      if (compState !== custState && custState !== "") {
+        showIGST = true;
+      } else {
+        showSingleGST = true;
+      }
+    } else if (compCountry !== "india" && custCountry !== "india") {
+      showVAT = true;
     } else {
       showSingleGST = true;
     }
-  } else if (compCountry !== "india" && custCountry !== "india") {
-    showVAT = true;
-  } else {
-    showSingleGST = true;
-  }
 
-  // Final Overrides (Only if specific taxType is forced and no split values exist)
-  const firstP = data.products[0] || {};
-  if (!hasSplitValues) {
-    if (firstP.taxType === "VAT") { showVAT = true; showIGST = false; showSingleGST = false; }
-    if (firstP.taxType === "IGST") { showIGST = true; showVAT = false; showSingleGST = false; }
-    if (firstP.taxType === "GST") {
-      if (compCountry === "india" && custCountry === "india" && compState !== custState && custState !== "") {
-        showIGST = true;
-        showSingleGST = false;
-        showVAT = false;
-      } else {
-        showSingleGST = true;
-        showIGST = false;
-        showVAT = false;
+    // Final Overrides (Only if specific taxType is forced and no split values exist)
+    const firstP = data.products[0] || {};
+    if (!hasSplitValues) {
+      if (firstP.taxType === "VAT") { showVAT = true; showIGST = false; showSingleGST = false; }
+      if (firstP.taxType === "IGST") { showIGST = true; showVAT = false; showSingleGST = false; }
+      if (firstP.taxType === "GST") {
+        if (compCountry === "india" && custCountry === "india" && compState !== custState && custState !== "") {
+          showIGST = true;
+          showSingleGST = false;
+          showVAT = false;
+        } else {
+          showSingleGST = true;
+          showIGST = false;
+          showVAT = false;
+        }
       }
     }
   }
 
   const headRow1 = [
-    { content: 'Item No.', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: 'Img.', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: 'Service / Item Name', rowSpan: 2, styles: { halign: 'left', valign: 'middle' } },
-    { content: 'HSN/SAC', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: 'Qty', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: 'UOM', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: `Unit Cost`, rowSpan: 2, styles: { halign: 'right', valign: 'middle' } }
+    { content: 'Item No.', ...(hasTax ? { rowSpan: 2 } : {}), styles: { halign: 'center', valign: 'middle' } },
+    { content: 'Img.', ...(hasTax ? { rowSpan: 2 } : {}), styles: { halign: 'center', valign: 'middle' } },
+    { content: 'Service / Item Name', ...(hasTax ? { rowSpan: 2 } : {}), styles: { halign: 'left', valign: 'middle' } },
+    { content: 'HSN/SAC', ...(hasTax ? { rowSpan: 2 } : {}), styles: { halign: 'center', valign: 'middle' } },
+    { content: 'Qty', ...(hasTax ? { rowSpan: 2 } : {}), styles: { halign: 'center', valign: 'middle' } },
+    { content: 'UOM', ...(hasTax ? { rowSpan: 2 } : {}), styles: { halign: 'center', valign: 'middle' } },
+    { content: `Unit Cost`, ...(hasTax ? { rowSpan: 2 } : {}), styles: { halign: 'right', valign: 'middle' } },
+    { content: `Discount (%)`, ...(hasTax ? { rowSpan: 2 } : {}), styles: { halign: 'center', valign: 'middle' } }
   ];
   const headRow2 = [];
 
@@ -660,7 +691,7 @@ async function buildPDF(data) {
     headRow2.push('%', 'Amt');
   }
 
-  headRow1.push({ content: 'Amount', rowSpan: 2, styles: { halign: 'right', valign: 'middle' } });
+  headRow1.push({ content: 'Amount', ...(hasTax ? { rowSpan: 2 } : {}), styles: { halign: 'right', valign: 'middle' } });
 
   const tableBody = data.products.map((p, i) => {
     const pId = p.id || p.srNo || i + 1;
@@ -670,6 +701,7 @@ async function buildPDF(data) {
     const qty = parseFloat(p.qty || p.quantity || 0);
     const unit = p.unit || p.uom || p.unit_name || "AU";
     const price = parseFloat(p.price || p.rate || p.unit_price || 0);
+    const discount = Number(p.discountPct || 0);
     const lineTaxable = price * qty;
 
     const row = [
@@ -684,7 +716,8 @@ async function buildPDF(data) {
       hsn,
       qty,
       unit,
-      fmt(price, false)
+      fmt(price, false),
+      `${discount}%`
     ];
 
     if (showIGST) {
@@ -714,29 +747,32 @@ async function buildPDF(data) {
     3: { cellWidth: showCGST_SGST ? 15 : 18, halign: 'center' },
     4: { cellWidth: showCGST_SGST ? 10 : 12, halign: 'center' },
     5: { cellWidth: showCGST_SGST ? 10 : 12, halign: 'center' },
-    6: { cellWidth: showCGST_SGST ? 18 : 20, halign: 'right' }
+    6: { cellWidth: showCGST_SGST ? 18 : 20, halign: 'right' },
+    7: { cellWidth: showCGST_SGST ? 12 : 14, halign: 'center' }
   };
-  let lastColIdx = 7;
+  let lastColIdx = 8;
   if (showCGST_SGST) {
-    colStyles[7] = { cellWidth: 7, halign: 'center' };
-    colStyles[8] = { cellWidth: 16, halign: 'right' };
-    colStyles[9] = { cellWidth: 7, halign: 'center' };
-    colStyles[10] = { cellWidth: 16, halign: 'right' };
-    lastColIdx = 11;
+    colStyles[8] = { cellWidth: 7, halign: 'center' };
+    colStyles[9] = { cellWidth: 15, halign: 'right' };
+    colStyles[10] = { cellWidth: 7, halign: 'center' };
+    colStyles[11] = { cellWidth: 15, halign: 'right' };
+    lastColIdx = 12;
+  } else if (showIGST || showVAT || showSingleGST) {
+    colStyles[8] = { cellWidth: 8, halign: 'center' };
+    colStyles[9] = { cellWidth: 18, halign: 'right' };
+    lastColIdx = 10;
   } else {
-    colStyles[7] = { cellWidth: 8, halign: 'center' };
-    colStyles[8] = { cellWidth: 18, halign: 'right' };
-    lastColIdx = 9;
+    lastColIdx = 8;
   }
-  colStyles[lastColIdx] = { cellWidth: 22, halign: 'right' };
+  colStyles[lastColIdx] = { cellWidth: showCGST_SGST ? 20 : 22, halign: 'right' };
 
   autoTable(doc, {
     startY: y,
-    margin: { top: 60, bottom: 35, left: ML, right: MR },
-    head: [headRow1, headRow2],
+    margin: { top: 20, bottom: 35, left: ML, right: MR },
+    head: hasTax ? [headRow1, headRow2] : [headRow1],
     body: tableBody,
     theme: "grid",
-    showHead: 'firstPage',
+    showHead: 'everyPage',
     styles: { fontSize: 8, cellPadding: 1, valign: 'middle', lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
     headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold" },
     columnStyles: colStyles,
@@ -769,7 +805,7 @@ async function buildPDF(data) {
     autoTable(doc, {
       startY: y,
       margin: { left: ML, right: MR, bottom: sigSpace },
-      body: [[{ content: "", colSpan: showCGST_SGST ? 12 : 10, styles: { minCellHeight: 45 } }]],
+      body: [[{ content: "", colSpan: showCGST_SGST ? 13 : (showIGST || showVAT || showSingleGST ? 11 : 9), styles: { minCellHeight: 45 } }]],
       theme: "grid",
       rowPageBreak: 'avoid',
       styles: { lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
@@ -791,7 +827,7 @@ async function buildPDF(data) {
           drawB("Holder", bk.accountName || bk.account_name || bk.holder_name);
           drawB("A/C No", bk.accountNumber || bk.account_number || bk.account_no);
           drawB("Branch", bk.branchName || bk.branch_name || bk.branch);
-          drawB("IFSC", bk.ifscCode || bk.ifsc_code || bk.ifsc);
+          drawB("IFSC", bk.ifsc_code);
           drawB("UPI", bk.upiId || bk.upi_id || bk.upi);
 
           if (qrB64) {
@@ -911,34 +947,42 @@ async function buildPDF(data) {
 
     // Left Side: Company Name
     sf("bold", 9);
-    doc.text(`For ${String(data.company?.name || "").toUpperCase()}`, ML, fy, { align: "left" });
+    const footerBusName = `For ${String(data.company?.name || "").toUpperCase()}`;
+    const footerBusLines = doc.splitTextToSize(footerBusName, 75);
+    let fny = fy - (footerBusLines.length - 1) * 4;
+    footerBusLines.forEach(line => {
+      doc.text(line, ML, fny, { align: "left" });
+      fny += 4;
+    });
 
     // Center: Page Numbers
     sf("normal", 8);
     doc.text(`Page ${i} of ${totalP}`, PW / 2, fy, { align: "center" });
 
     // Right Side: Authorized Signature Block
-    const blockWidth = 45;
-    const sigX = PW - MR - blockWidth;
+    if (i === 1) {
+      const blockWidth = 45;
+      const sigX = PW - MR - blockWidth;
 
-    // Draw a line above the label
-    doc.setLineWidth(0.1);
-    doc.line(sigX, fy - 4, PW - MR, fy - 4);
+      // Draw a line above the label
+      doc.setLineWidth(0.1);
+      doc.line(sigX, fy - 4, PW - MR, fy - 4);
 
-    // Position images side-by-side above the line
-    const stampWidth = 22;
-    const sigWidth = 20;
-    const combinedX = sigX + (blockWidth - (stampWidth + sigWidth)) / 2;
+      // Position images side-by-side above the line
+      const stampWidth = 22;
+      const sigWidth = 20;
+      const combinedX = sigX + (blockWidth - (stampWidth + sigWidth)) / 2;
 
-    if (stampB64) {
-      try { doc.addImage(stampB64, 'PNG', combinedX, fy - 18, stampWidth, 12); } catch (e) { }
+      if (stampB64) {
+        try { doc.addImage(stampB64, 'PNG', combinedX, fy - 18, stampWidth, 12); } catch (e) { }
+      }
+      if (sigB64) {
+        try { doc.addImage(sigB64, 'PNG', combinedX + stampWidth, fy - 18, sigWidth, 12); } catch (e) { }
+      }
+
+      sf("bold", 9);
+      doc.text("Authorized Signature", sigX + (blockWidth / 2), fy, { align: "center" });
     }
-    if (sigB64) {
-      try { doc.addImage(sigB64, 'PNG', combinedX + stampWidth, fy - 18, sigWidth, 12); } catch (e) { }
-    }
-
-    sf("bold", 9);
-    doc.text("Authorized Signature", sigX + (blockWidth / 2), fy, { align: "center" });
   }
 
   return doc;

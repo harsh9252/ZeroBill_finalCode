@@ -196,7 +196,7 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggle, onLog
         .filter((item) => {
           if (item.hidden) return false;
           // Show E-Invoice only for GST businesses
-          if (item.key === 'eInvoice' && taxType !== 'GST') return false;
+          if (item.key === 'eInvoice' && (taxType || 'No').toUpperCase().trim() !== 'GST') return false;
 
           // Permission check for sub-users
           if (isSubUser) {

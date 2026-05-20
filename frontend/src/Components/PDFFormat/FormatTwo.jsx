@@ -327,7 +327,13 @@ async function buildPDF(data) {
   const busName = (data.company?.name || data.company_name || data.companyName || data.business_name).toUpperCase();
   const busNameLines = doc.splitTextToSize(busName, 125);
   const busTaxLabel = data.company?.businessTypeLabel || "GSTIN";
-  const addrText = `${data.company?.addressLines || ""}\n${busTaxLabel}: ${data.company?.gstin || ""}\nPhone: ${data.company?.tel || ""}\nEmail: ${data.company?.email || ""}\nWebsite: ${data.company?.website || ""}`;
+  const addrParts = [];
+  if (data.company?.addressLines) addrParts.push(data.company.addressLines);
+  if (data.company?.gstin) addrParts.push(`${busTaxLabel}: ${data.company.gstin}`);
+  if (data.company?.tel) addrParts.push(`Phone: ${data.company.tel}`);
+  if (data.company?.email) addrParts.push(`Email: ${data.company.email}`);
+  if (data.company?.website) addrParts.push(`Website: ${data.company.website}`);
+  const addrText = addrParts.join("\n");
   const addrLines = doc.splitTextToSize(addrText, 125);
 
   const contentH = (busNameLines.length * 5.5) + (addrLines.length * 4.2) + 12;
@@ -666,6 +672,7 @@ async function buildPDF(data) {
 
   // Primary Check: If data has both CGST and SGST values, we MUST split it.
   const hasSplitValues = data.products.some(p => p.cgstPct > 0 && p.sgstPct > 0);
+  const hasTax = data.products.some(p => (p.tax || 0) > 0 || (p.cgstPct || 0) > 0 || (p.sgstPct || 0) > 0 || (p.igstPct || 0) > 0 || (p.vatPct || 0) > 0);
 
   let showIGST = false;
   let showCGST_SGST = false;
@@ -707,60 +714,92 @@ async function buildPDF(data) {
     }
   }
 
+  let headRows;
+  if (hasTax) {
+    const headRow1 = [
+      { content: 'S. NO.', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: 'Img.', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: 'Item Names', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: 'HSN/SAC', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: 'Qty', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+      { content: `Rate (${sym})`, rowSpan: 2, styles: { halign: 'center', valign: 'middle' } }
+    ];
+    const headRow2 = [];
 
+    if (showIGST) {
+      const taxLabel = (compCountry !== custCountry) ? 'GST' : 'IGST';
+      headRow1.push({ content: taxLabel, colSpan: 2, styles: { halign: 'center' } });
+      headRow2.push('%', 'Amt');
+    } else if (showCGST_SGST) {
+      headRow1.push({ content: 'CGST', colSpan: 2, styles: { halign: 'center' } });
+      headRow1.push({ content: 'SGST', colSpan: 2, styles: { halign: 'center' } });
+      headRow2.push('%', 'Amt', '%', 'Amt');
+    } else if (showVAT) {
+      headRow1.push({ content: 'VAT', colSpan: 2, styles: { halign: 'center' } });
+      headRow2.push('%', 'Amt');
+    } else if (showSingleGST) {
+      headRow1.push({ content: 'GST', colSpan: 2, styles: { halign: 'center' } });
+      headRow2.push('%', 'Amt');
+    }
 
-
-
-
-
-
-
-  const headRow1 = [
-    { content: 'S. NO.', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: 'Img.', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: 'Item Names', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: 'HSN/SAC', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: 'Qty', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-    { content: `Rate (${sym})`, rowSpan: 2, styles: { halign: 'center', valign: 'middle' } }
-  ];
-  const headRow2 = [];
-
-  if (showIGST) {
-    const taxLabel = (compCountry !== custCountry) ? 'GST' : 'IGST';
-    headRow1.push({ content: taxLabel, colSpan: 2, styles: { halign: 'center' } });
-    headRow2.push('%', 'Amt');
-  } else if (showCGST_SGST) {
-    headRow1.push({ content: 'CGST', colSpan: 2, styles: { halign: 'center' } });
-    headRow1.push({ content: 'SGST', colSpan: 2, styles: { halign: 'center' } });
-    headRow2.push('%', 'Amt', '%', 'Amt');
-  } else if (showVAT) {
-    headRow1.push({ content: 'VAT', colSpan: 2, styles: { halign: 'center' } });
-    headRow2.push('%', 'Amt');
-  } else if (showSingleGST) {
-    headRow1.push({ content: 'GST', colSpan: 2, styles: { halign: 'center' } });
-    headRow2.push('%', 'Amt');
+    headRow1.push({ content: 'Amount', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } });
+    headRows = [headRow1, headRow2];
+  } else {
+    const headRow = [
+      { content: 'S. NO.', styles: { halign: 'center' } },
+      { content: 'Img.', styles: { halign: 'center' } },
+      { content: 'Item Names', styles: { halign: 'center' } },
+      { content: 'HSN/SAC', styles: { halign: 'center' } },
+      { content: 'Qty', styles: { halign: 'center' } },
+      { content: `Rate (${sym})`, styles: { halign: 'center' } },
+      { content: 'Amount', styles: { halign: 'center' } }
+    ];
+    headRows = [headRow];
   }
 
-  headRow1.push({ content: 'Amount', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } });
+  const columnStyles = {
+    0: { cellWidth: 8, halign: 'center' },
+    1: { cellWidth: 12, halign: 'center' },
+    2: { cellWidth: 'auto', halign: 'left' },
+    3: { cellWidth: 20, halign: 'center' },
+    4: { cellWidth: 15, halign: 'center' },
+    5: { cellWidth: 22, halign: 'right' },
+  };
+
+  let colIdx = 6;
+  if (hasTax) {
+    if (showCGST_SGST) {
+      columnStyles[colIdx++] = { halign: 'center' };
+      columnStyles[colIdx++] = { halign: 'right' };
+      columnStyles[colIdx++] = { halign: 'center' };
+      columnStyles[colIdx++] = { halign: 'right' };
+    } else {
+      columnStyles[colIdx++] = { halign: 'center' };
+      columnStyles[colIdx++] = { halign: 'right' };
+    }
+  }
+  columnStyles[colIdx] = { cellWidth: 25, halign: 'right' };
 
   autoTable(doc, {
     startY: y,
-    head: [headRow1, headRow2],
+    head: headRows,
     body: data.products.map((p, i) => {
       const row = [i + 1, "", p.description || "", p.hsn || "", `${p.qty} ${p.unit}`, (p.price).toFixed(2)];
       const lineTaxable = p.price * p.qty;
 
-      if (showIGST) {
-        row.push(`${p.igstPct || 0}%`, (p.tax || 0).toFixed(2));
-      } else if (showCGST_SGST) {
-        row.push(`${p.cgstPct || 0}%`, ((lineTaxable * (p.cgstPct || 0)) / 100).toFixed(2));
-        row.push(`${p.sgstPct || 0}%`, ((lineTaxable * (p.sgstPct || 0)) / 100).toFixed(2));
-      } else if (showVAT) {
-        row.push(`${p.vatPct || 0}%`, (p.tax || 0).toFixed(2));
-      } else if (showSingleGST) {
-        // Combined GST percentage
-        const totalGstPct = (p.cgstPct || 0) + (p.sgstPct || 0) + (p.igstPct || 0) + (p.vatPct || 0);
-        row.push(`${totalGstPct || 0}%`, (p.tax || 0).toFixed(2));
+      if (hasTax) {
+        if (showIGST) {
+          row.push(`${p.igstPct || 0}%`, (p.tax || 0).toFixed(2));
+        } else if (showCGST_SGST) {
+          row.push(`${p.cgstPct || 0}%`, ((lineTaxable * (p.cgstPct || 0)) / 100).toFixed(2));
+          row.push(`${p.sgstPct || 0}%`, ((lineTaxable * (p.sgstPct || 0)) / 100).toFixed(2));
+        } else if (showVAT) {
+          row.push(`${p.vatPct || 0}%`, (p.tax || 0).toFixed(2));
+        } else if (showSingleGST) {
+          // Combined GST percentage
+          const totalGstPct = (p.cgstPct || 0) + (p.sgstPct || 0) + (p.igstPct || 0) + (p.vatPct || 0);
+          row.push(`${totalGstPct || 0}%`, (p.tax || 0).toFixed(2));
+        }
       }
       row.push((p.total).toFixed(2));
       return row;
@@ -769,19 +808,7 @@ async function buildPDF(data) {
     theme: "grid",
     styles: { fontSize: 8, cellPadding: 1, minCellHeight: 10, valign: 'middle', lineColor: [0, 0, 0], lineWidth: 0.2, textColor: [0, 0, 0] },
     headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 8, halign: 'center', cellPadding: 0.8, minCellHeight: 6 },
-    columnStyles: {
-      0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 12, halign: 'center' },
-      2: { cellWidth: 'auto', halign: 'left' },
-      3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 15, halign: 'center' },
-      5: { cellWidth: 22, halign: 'right' },
-      6: { halign: 'center' },
-      7: { halign: 'right' },
-      8: { halign: 'center' },
-      9: { halign: 'right' },
-      10: { cellWidth: 25, halign: 'right' }
-    },
+    columnStyles: columnStyles,
     didDrawCell: (cellData) => {
       if (cellData.section === "body" && cellData.column.index === 1) {
         const id = data.products[cellData.row.index].srNo || cellData.row.index + 1;
@@ -798,6 +825,8 @@ async function buildPDF(data) {
       }
     },
   });
+
+  
 
   y = doc.lastAutoTable.finalY;
 
@@ -877,11 +906,21 @@ async function buildPDF(data) {
 
   const rightColW = PW - MR - splitX;
   sf("bold", 8.5);
-  doc.text(data.company?.name || "", splitX + rightColW / 2, sigStartY + 7, { align: "center" });
+  
+  const compNameStr = data.company?.name || "";
+  const compNameLines = doc.splitTextToSize(compNameStr, rightColW - 4).slice(0, 2);
+  let cY = sigStartY + 5;
+  compNameLines.forEach(l => {
+    doc.text(l, splitX + rightColW / 2, cY, { align: "center" });
+    cY += 3.5;
+  });
+
   const totalImgW = 42;
   const startImgX = splitX + (rightColW - totalImgW) / 2;
-  if (stampB64) { try { doc.addImage(stampB64, "PNG", startImgX, sigStartY + 10, 22, 14); } catch (e) { } }
-  if (sigB64) { try { doc.addImage(sigB64, "PNG", startImgX + 22, sigStartY + 10, 20, 14); } catch (e) { } }
+  const sigImgY = sigStartY + (compNameLines.length > 1 ? 11.5 : 9);
+
+  if (stampB64) { try { doc.addImage(stampB64, "PNG", startImgX, sigImgY, 22, 14); } catch (e) { } }
+  if (sigB64) { try { doc.addImage(sigB64, "PNG", startImgX + 22, sigImgY, 20, 14); } catch (e) { } }
   doc.setLineWidth(0.2);
   doc.line(splitX, sigStartY + 26, PW - MR, sigStartY + 26);
   sf("bold", 9);
@@ -959,7 +998,7 @@ async function buildPDF(data) {
     startY: notesStartY,
     margin: { left: ML, right: PW - splitX },
     head: [[{ content: "Notes : ", styles: { fontStyle: 'bold', halign: 'left' } }, { content: "Remark :", styles: { fontStyle: 'bold', halign: 'left' } }]],
-    body: [[{ content: data.notes || "Thanks for your business.", styles: { fontStyle: 'normal' } }, { content: data.remark || " ", styles: { fontStyle: 'normal' } }]],
+    body: [[{ content: data.notes || "", styles: { fontStyle: 'normal' } }, { content: data.remark || " ", styles: { fontStyle: 'normal' } }]],
     showHead: 'firstPage', theme: "grid",
     headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], minCellHeight: 6, cellPadding: 1.5 },
     styles: { fontSize: 8, cellPadding: 3, lineColor: [0, 0, 0], lineWidth: 0.2, textColor: [0, 0, 0], minCellHeight: 12, overflow: 'linebreak' },
