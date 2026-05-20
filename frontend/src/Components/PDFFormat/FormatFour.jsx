@@ -1339,7 +1339,7 @@ async function buildPDF(data, letterheadImage) {
     const fY = PH - 5;
     sf("bold", 11);
     doc.setTextColor(...ORANGE);
-    doc.text("Thanks For Your Business", PW / 2, fY - 5, { align: "center" });
+    doc.text("", PW / 2, fY - 5, { align: "center" });
     drawFooterDecor();
   }
 

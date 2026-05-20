@@ -54,6 +54,17 @@ const CustomQuotation_Emerald = forwardRef(({ quotationData: data, letterheadIma
         return;
       }
 
+      if (node.nodeName === 'TABLE') {
+        // Force table to start on a new page to avoid cropping
+        if (currentPageHtml) {
+          pages.push(currentPageHtml);
+          currentPageHtml = '';
+        }
+        // Add the table (allow it to occupy the new page; if too large, it will overflow but not be cropped)
+        currentPageHtml += nodeHtml;
+        return;
+      }
+
       // Split between child elements only (paragraphs, list items, etc.)
       if (node.nodeType === Node.ELEMENT_NODE && ['DIV', 'P', 'SECTION', 'UL', 'OL'].includes(node.nodeName)) {
         if (node.childNodes.length > 1) {
@@ -213,7 +224,7 @@ const CustomQuotation_Emerald = forwardRef(({ quotationData: data, letterheadIma
         }
 
         .preview-wrapper .rich-text-container p { margin-bottom: 12pt; }
-        .preview-wrapper .rich-text-container table { width: 100%; border-collapse: collapse; margin: 15pt 0; }
+
         .preview-wrapper .rich-text-container th, .preview-wrapper .rich-text-container td { border: 1px solid #E5E7EB; padding: 6pt 10pt; text-align: left; }
         .preview-wrapper .rich-text-container th { background: #F9FAFB; font-weight: 700; color: #111827; }
       `}</style>

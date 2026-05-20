@@ -882,10 +882,11 @@ async function buildPDF(data, letterheadImage) {
     }
   }
 
+
   const activeSym = data.activeCurrency || "INR";
   
   const colDefs = [
-    { key: "no", head: "#", w: 7, al: "center", on: true },
+    { key: "no", head: "S.No", w: 10, al: "center", on: true },
     { key: "img", head: "IMG", w: 10, al: "center", on: hasImg },
     { key: "desc", head: "ITEM", w: 0, al: "left", on: true },
     { key: "hsn", head: "HSN", w: 15, al: "center", on: hasHSN },
@@ -902,6 +903,7 @@ async function buildPDF(data, letterheadImage) {
 
     { key: "total", head: `TOTAL (${activeSym})`, w: 26, al: "right", on: true },
   ];
+
 
   const aCols = colDefs.filter((c) => c.on);
   const heads = aCols.map((c) => c.head);
@@ -1090,7 +1092,10 @@ async function buildPDF(data, letterheadImage) {
   if (!isChallan && data.bank) {
     const bk = data.bank;
     const hv = (v) =>
-      v && v.toString().trim() && v.toString().trim().toUpperCase() !== "N/A";
+      v &&
+      v.toString().trim() &&
+      v.toString().trim().toUpperCase() !== "N/A" &&
+      v.toString().trim().toUpperCase() !== "IFSC";
 
     // Build display rows
     const bRows = [
@@ -1105,7 +1110,7 @@ async function buildPDF(data, letterheadImage) {
       { l: "UPI", v: hv(bk.upi) ? bk.upi : null },
     ].filter((r) => r.v !== null);
 
-    const BKW = CW * 0.5; // 50% width box
+    const BKW = CW * 0.5;
     const BKPAD = 5;
     const LH = 4.0;
     const bkH = 7 + bRows.length * LH + 4;

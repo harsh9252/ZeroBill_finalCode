@@ -228,9 +228,13 @@ function numberToWords(num) {
 }
 
 const safeSym = (s, code) => {
-  if (code === "NPR") return "NPR";
-  if (code === "INR" || s === "₹" || s === "Rs.") return "INR";
-  return s || code || "INR";
+  // jsPDF's built-in Helvetica font cannot render non-ASCII Unicode symbols
+  // (e.g. €, £, ¥). Always use the ISO currency code so text is readable.
+  const c = (code || "").toUpperCase().trim();
+  if (c === "INR" || s === "₹" || s === "Rs.") return "INR";
+  if (c === "NPR") return "NPR";
+  if (c) return c;          // e.g. USD, EUR, GBP, AED, etc.
+  return s || "INR";        // last resort — if no code at all
 };
 
 async function buildPDF(data, letterheadImage) {

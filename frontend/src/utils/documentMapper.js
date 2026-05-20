@@ -45,7 +45,8 @@ const aggregateTotals = (lines, metaData, row, currency) => {
             sgstAmt,
             igstAmt,
             vatAmt,
-            totalTax
+            totalTax,
+            discountValue
         };
     });
 
@@ -56,10 +57,16 @@ const aggregateTotals = (lines, metaData, row, currency) => {
     const sgstAmount = lineDetails.reduce((sum, l) => sum + l.sgstAmt, 0);
     const igstAmount = lineDetails.reduce((sum, l) => sum + l.igstAmt, 0);
     const vatAmount = lineDetails.reduce((sum, l) => sum + l.vatAmt, 0);
+    const totalDiscountValue = lineDetails.reduce((sum, l) => sum + l.discountValue, 0);
 
     const chargesTotal = (Array.isArray(metaData.charges) ? metaData.charges : []).reduce((s, c) => s + Number(c.amount || 0), 0);
     const discountAfterTaxPct = Number(metaData.discountAfterTaxPct || 0);
-    const discountAfterTaxValue = (taxableAmount + totalTax + chargesTotal) * (discountAfterTaxPct / 100);
+    let discountAfterTaxValue = (taxableAmount + totalTax + chargesTotal) * (discountAfterTaxPct / 100);
+
+    if (discountAfterTaxValue === 0 && (row.discount_amount || row.discount || metaData.discountAmount || metaData.discount)) {
+        discountAfterTaxValue = Number(row.discount_amount || row.discount || metaData.discountAmount || metaData.discount || 0);
+    }
+
     let grandTotal = taxableAmount + totalTax + chargesTotal - discountAfterTaxValue;
 
     const paymentTerms = metaData.paymentTerms || [];
@@ -73,6 +80,8 @@ const aggregateTotals = (lines, metaData, row, currency) => {
         sgstAmount: parseFloat(sgstAmount.toFixed(2)),
         igstAmount: parseFloat(igstAmount.toFixed(2)),
         vatAmount: parseFloat(vatAmount.toFixed(2)),
+        discount: parseFloat(totalDiscountValue.toFixed(2)),
+        discountAmount: parseFloat(totalDiscountValue.toFixed(2)),
         additionalCharges: parseFloat(chargesTotal.toFixed(2)),
         discountAfterTax: parseFloat(discountAfterTaxValue.toFixed(2)),
         total: parseFloat(grandTotal.toFixed(2)),
@@ -280,16 +289,12 @@ const mapGenericDocument = async (row, businessData, partyAPI, options = {}) => 
         quotation: {
             number: row[documentNumberField] || row.id,
             date: formatDate(row[documentDateField] || row.date),
-            dueDate: formatDate(
+            dueDate: (
                 row.due_date ||
                 row.dueDate ||
-                row.due_date ||
                 row.valid_until ||
                 row.valid_till ||
                 row.expected_delivery_date ||
-                row.challan_date ||
-                row.note_date ||
-                row.return_date ||
                 metaData.dueDate ||
                 metaData.due_date ||
                 metaData.valid_until ||
@@ -300,7 +305,23 @@ const mapGenericDocument = async (row, businessData, partyAPI, options = {}) => 
                 row.meta?.dueDate ||
                 row.meta?.due_date ||
                 row.meta?.valid_until
-            ),
+            ) ? formatDate(
+                row.due_date ||
+                row.dueDate ||
+                row.valid_until ||
+                row.valid_till ||
+                row.expected_delivery_date ||
+                metaData.dueDate ||
+                metaData.due_date ||
+                metaData.valid_until ||
+                metaData.valid_till ||
+                metaData.expiry_date ||
+                metaData.expected_delivery_date ||
+                metaData.delivery_date ||
+                row.meta?.dueDate ||
+                row.meta?.due_date ||
+                row.meta?.valid_until
+            ) : null,
             reverseCharge: metaData.payableOnReverseCharge || 'No',
             lrNo: metaData.lrNo || '',
             transport: metaData.transport || '',
